@@ -31,6 +31,7 @@ class BaseMatch(BaseModel, ABC):
 
     home_score: int = Field(default=0, validation_alias=AliasPath("homeCompetitor", "score"))
     away_score: int = Field(default=0, validation_alias=AliasPath("awayCompetitor", "score"))
+    notified: bool = Field(default=False)
 
     metadata: dict[str, Any] = Field(default_factory=dict, validation_alias="metadata")
     updated_at: datetime | None = None
