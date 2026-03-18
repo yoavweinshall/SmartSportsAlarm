@@ -29,7 +29,7 @@ class LiveMatchSyncService:
             if self._cache_initialized:
                 return
 
-            comp_res = await get_supabase().table("competitions").select("id").execute()
+            comp_res = await get_supabase().table("competitions").select("external_api_id").execute()
             self._supported_competition_ids = {int(rec["external_api_id"]) for rec in comp_res.data}
 
             team_res = await get_supabase().table("teams").select("id, external_api_id").execute()
