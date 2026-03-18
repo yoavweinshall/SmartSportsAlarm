@@ -2,8 +2,8 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Set, Tuple
 from ..core.matches.factory import MatchFactory
-from ..database import supabase
-from . import ScoresApiService
+from ..database import get_supabase
+from .ScoresApiService import ScoresApiService
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +29,13 @@ class LiveMatchSyncService:
             if self._cache_initialized:
                 return
 
-            comp_res = await supabase.table("competitions").select("id").execute()
-            self._supported_competition_ids = {int(rec["id"]) for rec in comp_res.data}
+            comp_res = await get_supabase().table("competitions").select("id").execute()
+            self._supported_competition_ids = {int(rec["external_api_id"]) for rec in comp_res.data}
 
-            team_res = await supabase.table("teams").select("id, external_api_id").execute()
+            team_res = await get_supabase().table("teams").select("id, external_api_id").execute()
             self._api_to_internal_team_id = {int(rec["external_api_id"]): int(rec["id"]) for rec in team_res.data}
 
-            link_res = await supabase.table("team_competitions").select("team_id, competition_id").execute()
+            link_res = await get_supabase().table("team_competitions").select("team_id, competition_id").execute()
             self._known_team_comp_links = {(int(rec["team_id"]), int(rec["competition_id"])) for rec in link_res.data}
 
             self._cache_initialized = True
@@ -57,7 +57,7 @@ class LiveMatchSyncService:
         if not external_ids:
             return {}
 
-        response = await supabase.table("matches") \
+        response = await get_supabase().table("matches") \
             .select("external_api_id, notified") \
             .in_("external_api_id", external_ids) \
             .execute()
@@ -81,15 +81,16 @@ class LiveMatchSyncService:
                     new_teams[api_id] = {
                         "external_api_id": api_id,
                         "name": comp.get("name"),
-                        "updated_at": datetime.now(timezone.utc).isoformat()
+                        "created_at": datetime.now(timezone.utc).isoformat()
                     }
 
         if new_teams:
+            print(new_teams)
             # Return generated internal IDs for mapping
-            res = await supabase.table("teams").upsert(
+            res = await get_supabase().table("teams").upsert(
                 list(new_teams.values()),
                 on_conflict="external_api_id"
-            ).select("id, external_api_id").execute()
+            ).execute()
 
             for rec in res.data:
                 self._api_to_internal_team_id[rec["external_api_id"]] = rec["id"]
@@ -113,7 +114,7 @@ class LiveMatchSyncService:
                     self._known_team_comp_links.add((internal_team_id, comp_id))
 
         if links_to_add:
-            await supabase.table("team_competitions").upsert(
+            await get_supabase().table("team_competitions").upsert(
                 links_to_add,
                 on_conflict="team_id, competition_id"
             ).execute()
@@ -142,7 +143,7 @@ class LiveMatchSyncService:
             match_payload["away_team_id"] = self._api_to_internal_team_id.get(match.away_team_id)
             match_payload["notified"] = current_climax
 
-            await supabase.table("matches").upsert(
+            await get_supabase().table("matches").upsert(
                 match_payload,
                 on_conflict="external_api_id"
             ).execute()
