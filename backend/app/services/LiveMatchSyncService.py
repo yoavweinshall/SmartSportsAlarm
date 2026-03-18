@@ -69,7 +69,7 @@ class LiveMatchSyncService:
 
     async def _batch_sync_teams(self, games_data: List[Dict[str, Any]]):
         """
-        Extracts new teams and missing competition links, performing batch upserts.
+        Extracts new teams, performing batch upserts.
         """
         new_teams = {}
         for game in games_data:
@@ -95,7 +95,9 @@ class LiveMatchSyncService:
                 self._api_to_internal_team_id[rec["external_api_id"]] = rec["id"]
 
     async def _batch_sync_teams_competitions_links(self, games_data: List[Dict[str, Any]]):
-
+        """
+        Extracts new links, performing batch upserts.
+        """
         links_to_add = []
         for game in games_data:
             comp_id = int(game.get("competitionId", 0))
