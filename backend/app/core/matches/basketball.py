@@ -17,8 +17,8 @@ class BasketballMatch(BaseMatch):
                                                                          QuarterGameStage.Q4: 0,
                                                                          QuarterGameStage.OVERTIME: 0
                                                                          }
-    CLIMAX_MAX_SCORE_DIFF: ClassVar[int] = 5
-    CLIMAX_MAX_TIME_SECONDS: ClassVar[int] = 2 * 60
+    CLIMAX_MAX_SCORE_DIFF: ClassVar[int] = 8
+    CLIMAX_MAX_TIME_SECONDS: ClassVar[int] = 10 * 60
     STAGE_ENUM: ClassVar[type[QuarterGameStage]] = QuarterGameStage
 
     @model_validator(mode="after")
