@@ -1,11 +1,20 @@
 import asyncio
 import logging
+import sys
+
+import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from .database import init_supabase
 from .services.LiveMatchSyncService import LiveMatchSyncService
 
 # Setup logger for background task visibility
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
 logger = logging.getLogger("uvicorn")
 
 
@@ -13,6 +22,7 @@ async def run_sync_worker(interval_seconds: int = 60):
     """
     Background worker that runs the sync service in a loop.
     """
+    logger.info("Starting sync worker")
     sync_service = LiveMatchSyncService()
     while True:
         try:

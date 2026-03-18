@@ -1,5 +1,5 @@
-from .LiveMatchSyncService import MatchFactory
+from .LiveMatchSyncService import LiveMatchSyncService
 from .ScoresApiService import ScoresApiService
 
 
-__all__ = ["MatchFactory", "ScoresApiService"]
+__all__ = ["LiveMatchSyncService", "ScoresApiService"]
