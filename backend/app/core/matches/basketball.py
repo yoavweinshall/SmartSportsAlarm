@@ -5,8 +5,8 @@ from typing import ClassVar, Dict
 from pydantic import model_validator
 
 from .base import BaseMatch
-from utils.stages import HalfGameStage, QuarterGameStage, normalize_half_game_stage, normalize_quarter_game_stage
-from utils.time_handle import parse_mmss_to_seconds
+from .utils.stages import HalfGameStage, QuarterGameStage, normalize_half_game_stage, normalize_quarter_game_stage
+from .utils.time_handle import parse_mmss_to_seconds
 
 
 class BasketballMatch(BaseMatch):
