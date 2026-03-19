@@ -81,7 +81,7 @@ class LiveMatchSyncService:
                 if api_id and api_id not in self._api_to_internal_team_id:
                     team = BaseTeam.model_validate(comp)
                     team.country_id =  None  # dealing with states inside the US is a lot of mess
-                    new_teams[api_id] = team.model_dump(exclude_none=True)
+                    new_teams[api_id] = team.model_dump(mode='json', exclude_none=True)
 
         if new_teams:
             # Return generated internal IDs for mapping
@@ -110,19 +110,21 @@ class LiveMatchSyncService:
                         "team_id": internal_team_id,
                         "competition_id": internal_competition_id
                     })
-                    self._known_team_comp_links.add((internal_team_id, internal_competition_id))
 
         if links_to_add:
-            await get_supabase().table("team_competitions").upsert(
+            res = await get_supabase().table("team_competitions").upsert(
                 links_to_add,
                 on_conflict="team_id, competition_id"
             ).execute()
+            for rec in res.data:
+                self._known_team_comp_links.add((rec["team_id"], rec["competition_id"]))
 
-    async def _sync_single_match(self, game_data: Dict[str, Any], notified_map: Dict[int, bool]) -> None:
+    def _process_single_match(self, game_data: Dict[str, Any], notified_map: Dict[int, bool]) -> Dict[str, Any] | None:
         """
-        Update a single game in the DB
+        Process the state of 1 game
         :param game_data: data of the live match we got from the API
         :param notified_map: map of the previous notified status of the games
+        :return: updated game data
         """
         try:
             match = MatchFactory.get_match_instance(game_data)
@@ -135,22 +137,19 @@ class LiveMatchSyncService:
                 self._handle_new_climax(match)
 
             match.updated_at = datetime.now(timezone.utc)
-            match_payload = match.model_dump(exclude_none=True)
+            match.home_team_id = self._api_to_internal_team_id.get(match.home_team_id)
+            match.away_team_id = self._api_to_internal_team_id.get(match.away_team_id)
+            match.competition_id = self._api_to_internal_team_id.get(match.competition_id)
+            match.notified = current_climax
+            match_payload = match.model_dump(mode='json', exclude_none=True)
 
-            # Translate API IDs to internal IDs for DB Foreign Keys
-            match_payload["home_team_id"] = self._api_to_internal_team_id.get(match.home_team_id)
-            match_payload["away_team_id"] = self._api_to_internal_team_id.get(match.away_team_id)
-            match_payload["notified"] = current_climax
+            return match_payload
 
-            await get_supabase().table("matches").upsert(
-                match_payload,
-                on_conflict="external_api_id"
-            ).execute()
-
-        except ValueError:
-            pass
+        except ValueError as e:
+            return logger.error(f"Invalid match data: {game_data}: {e}")
         except Exception as e:
             logger.error(f"Failed to process game {game_data.get('id')}: {e}")
+            return None
 
     async def sync_live_matches(self) -> None:
         """
@@ -177,8 +176,12 @@ class LiveMatchSyncService:
             # Optimization: use only supported games for notified states
             notified_map = await self._get_db_notified_states(supported_games)
 
-            for game in supported_games:
-                await self._sync_single_match(game, notified_map)
+
+            processed_games = [self._process_single_match(game, notified_map) for game in supported_games]
+            await get_supabase().table("matches").upsert(
+                processed_games,
+                on_conflict="external_api_id"
+            ).execute()
 
         except Exception as e:
             logger.error(f"Sync service error: {e}")

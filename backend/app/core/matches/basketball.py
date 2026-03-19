@@ -13,14 +13,12 @@ from .utils.time_handle import parse_mmss_to_seconds
 class BasketballMatch(BaseMatch):
     STAGE_ADDITIONAL_GAME_TIME: ClassVar[Dict[Enum, int]] = {QuarterGameStage.Q1: 1800,
                                                                          QuarterGameStage.Q2: 1200,
-                                                                         QuarterGameStage.HALFTIME: 1200,
                                                                          QuarterGameStage.Q3: 600,
                                                                          QuarterGameStage.Q4: 0,
                                                                          QuarterGameStage.OVERTIME: 0
                                                                          }
     CLIMAX_MAX_SCORE_DIFF: ClassVar[int] = 8
     CLIMAX_MAX_TIME_SECONDS: ClassVar[int] = 10 * 60
-    STAGE_ENUM: ClassVar[type[QuarterGameStage]] = QuarterGameStage
 
     @model_validator(mode="after")
     def _validate_stage(self):
@@ -55,7 +53,7 @@ class BasketballMatch(BaseMatch):
             return None
         if self.stage == QuarterGameStage.FINISHED:
             return 0
-        return parse_mmss_to_seconds(self.game_time) + self.STAGE_ADDITIONAL_GAME_TIME[self.stage]
+        return parse_mmss_to_seconds(self.game_time) + self.STAGE_ADDITIONAL_GAME_TIME[self.status_text]
 
     def is_climax(self) -> bool:
         seconds = self.remaining_time_seconds()
@@ -65,7 +63,6 @@ class BasketballMatch(BaseMatch):
 
 
 class NCAABasketBallMatch(BasketballMatch):
-    STAGE_ENUM: ClassVar[type[HalfGameStage]] = HalfGameStage
 
     STAGE_ADDITIONAL_GAME_TIME: ClassVar[Dict[HalfGameStage, int]] = {HalfGameStage.FIRST_HALF: 1200,
                                                                       HalfGameStage.HALF_TIME: 1200,

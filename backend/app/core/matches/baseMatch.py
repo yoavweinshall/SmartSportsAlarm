@@ -17,7 +17,7 @@ class BaseMatch(BaseModel, ABC):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    id: int | None = None
+    id: int | None = Field(default=None, exclude=True)
     external_api_id: int = Field(validation_alias="id")
     competition_id: int | None = Field(default=None, validation_alias="competitionId")
     home_team_id: int | None = Field(default=None, validation_alias=AliasPath("homeCompetitor", "id"))
