@@ -15,7 +15,7 @@ class BaseMatch(BaseModel, ABC):
     Validation aliases map 365scores JSON into these columns.
     """
 
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int | None = None
     external_api_id: int = Field(validation_alias="id")

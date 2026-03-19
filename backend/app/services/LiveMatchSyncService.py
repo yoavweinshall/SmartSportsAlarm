@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Set, Tuple
 from ..core.matches.factory import MatchFactory
+from ..core.teams.baseTeam import BaseTeam
 from ..database import get_supabase
 from .ScoresApiService import ScoresApiService
 
@@ -71,21 +72,18 @@ class LiveMatchSyncService:
         """
         Extracts new teams, performing batch upserts.
         """
-        new_teams = {}
+        new_teams: Dict[int, BaseTeam] = {}
         for game in games_data:
             for side in ["homeCompetitor", "awayCompetitor"]:
                 comp = game.get(side, {})
                 api_id = comp.get("id")
 
                 if api_id and api_id not in self._api_to_internal_team_id:
-                    new_teams[api_id] = {
-                        "external_api_id": api_id,
-                        "name": comp.get("name"),
-                        "created_at": datetime.now(timezone.utc).isoformat()
-                    }
+                    team = BaseTeam.model_validate(comp)
+                    team.country_id =  None  # dealing with states inside the US is a lot of mess
+                    new_teams[api_id] = team.model_dump(exclude_none=True)
 
         if new_teams:
-            print(new_teams)
             # Return generated internal IDs for mapping
             res = await get_supabase().table("teams").upsert(
                 list(new_teams.values()),
