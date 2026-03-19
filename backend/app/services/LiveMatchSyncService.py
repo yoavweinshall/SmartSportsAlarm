@@ -17,7 +17,7 @@ class LiveMatchSyncService:
         self.api_service = ScoresApiService()
 
         self._api_to_internal_team_id: Dict[int, int] = {}
-        self._supported_competition_ids: Set[int] = set()
+        self._supported_competition_ids: Dict[int, int] = {}
         self._known_team_comp_links: Set[Tuple[int, int]] = set()
         self._cache_initialized = False
 
@@ -29,8 +29,8 @@ class LiveMatchSyncService:
             if self._cache_initialized:
                 return
 
-            comp_res = await get_supabase().table("competitions").select("external_api_id").execute()
-            self._supported_competition_ids = {int(rec["external_api_id"]) for rec in comp_res.data}
+            comp_res = await get_supabase().table("competitions").select("id", "external_api_id").execute()
+            self._supported_competition_ids = {int(rec["external_api_id"]): int(rec["id"]) for rec in comp_res.data}
 
             team_res = await get_supabase().table("teams").select("id, external_api_id").execute()
             self._api_to_internal_team_id = {int(rec["external_api_id"]): int(rec["id"]) for rec in team_res.data}
@@ -101,17 +101,18 @@ class LiveMatchSyncService:
         """
         links_to_add = []
         for game in games_data:
-            comp_id = int(game.get("competitionId", 0))
+            comp_api_id = int(game.get("competitionId", 0))
+            internal_competition_id = self._supported_competition_ids.get(comp_api_id)
             for side in ["homeCompetitor", "awayCompetitor"]:
                 api_team_id = game.get(side, {}).get("id")
                 internal_team_id = self._api_to_internal_team_id.get(api_team_id)
 
-                if internal_team_id and (internal_team_id, comp_id) not in self._known_team_comp_links:
+                if internal_team_id and (internal_team_id, internal_competition_id) not in self._known_team_comp_links:
                     links_to_add.append({
                         "team_id": internal_team_id,
-                        "competition_id": comp_id
+                        "competition_id": internal_competition_id
                     })
-                    self._known_team_comp_links.add((internal_team_id, comp_id))
+                    self._known_team_comp_links.add((internal_team_id, internal_competition_id))
 
         if links_to_add:
             await get_supabase().table("team_competitions").upsert(
