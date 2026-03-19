@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import ClassVar, Dict
 
 from pydantic import model_validator
@@ -10,7 +11,7 @@ from .utils.time_handle import parse_mmss_to_seconds
 
 
 class BasketballMatch(BaseMatch):
-    STAGE_ADDITIONAL_GAME_TIME: ClassVar[Dict[QuarterGameStage, int]] = {QuarterGameStage.Q1: 1800,
+    STAGE_ADDITIONAL_GAME_TIME: ClassVar[Dict[Enum, int]] = {QuarterGameStage.Q1: 1800,
                                                                          QuarterGameStage.Q2: 1200,
                                                                          QuarterGameStage.HALFTIME: 1200,
                                                                          QuarterGameStage.Q3: 600,
@@ -45,17 +46,16 @@ class BasketballMatch(BaseMatch):
         - Otherwise parses `mm:ss` from `game_time` (mapped from 365scores `gameTimeDisplay`).
         """
 
-        stage = self.stage()
-        if stage in {
+        if self.stage in {
             QuarterGameStage.SCHEDULED,
             QuarterGameStage.DELAYED,
             QuarterGameStage.POSTPONED,
             QuarterGameStage.CANCELLED,
         }:
             return None
-        if stage == QuarterGameStage.FINISHED:
+        if self.stage == QuarterGameStage.FINISHED:
             return 0
-        return parse_mmss_to_seconds(self.game_time) + self.QUARTER_ADDITIONAL_GAME_TIME[stage]
+        return parse_mmss_to_seconds(self.game_time) + self.STAGE_ADDITIONAL_GAME_TIME[self.stage]
 
     def is_climax(self) -> bool:
         seconds = self.remaining_time_seconds()
