@@ -1,7 +1,9 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Set, Tuple
-from ..core.matches.factory import MatchFactory
+
+from ..core.matches import BaseMatch
 from ..core.teams.baseTeam import BaseTeam
 from ..database import get_supabase
 from .ScoresApiService import ScoresApiService
@@ -48,13 +50,13 @@ class LiveMatchSyncService:
             logger.error(f"Critical error during sync cache initialization: {e}")
 
     @staticmethod
-    async def _get_db_notified_states(games_data: List[Dict[str, Any]]) -> Dict[int, bool]:
+    async def _get_db_notified_states(games_data: List[BaseMatch]) -> Dict[int, bool]:
         """
         Get the status of the games that are on the DB
         :param games_data: data of the live matches we got from the API
         :return: Last notification status of the live matches
         """
-        external_ids = [g.get("id") for g in games_data if g.get("id")]
+        external_ids = [g.external_api_id for g in games_data if g.external_api_id]
         if not external_ids:
             return {}
 
@@ -68,20 +70,20 @@ class LiveMatchSyncService:
             for rec in response.data
         }
 
-    async def _batch_sync_teams(self, games_data: List[Dict[str, Any]]):
+    async def _batch_sync_teams(self, games_data: List[BaseMatch]):
         """
         Extracts new teams, performing batch upserts.
         """
         new_teams: Dict[int, BaseTeam] = {}
         for game in games_data:
-            for side in ["homeCompetitor", "awayCompetitor"]:
-                comp = game.get(side, {})
-                api_id = comp.get("id")
+            for side in [game.home_team, game.away_team]:
+                if side is None:
+                    continue
+                api_id = side.external_api_id
 
                 if api_id and api_id not in self._api_to_internal_team_id:
-                    team = BaseTeam.model_validate(comp)
-                    team.country_id =  None  # dealing with states inside the US is a lot of mess
-                    new_teams[api_id] = team.model_dump(mode='json', exclude_none=True)
+                    side.country_id =  None  # dealing with states inside the US is a lot of mess
+                    new_teams[api_id] = side.model_dump(mode='json', exclude_none=True)
 
         if new_teams:
             # Return generated internal IDs for mapping
@@ -93,16 +95,18 @@ class LiveMatchSyncService:
             for rec in res.data:
                 self._api_to_internal_team_id[rec["external_api_id"]] = rec["id"]
 
-    async def _batch_sync_teams_competitions_links(self, games_data: List[Dict[str, Any]]):
+    async def _batch_sync_teams_competitions_links(self, games_data: List[BaseMatch]):
         """
         Extracts new links, performing batch upserts.
         """
         links_to_add = []
         for game in games_data:
-            comp_api_id = int(game.get("competitionId", 0))
+            comp_api_id = game.external_api_id
             internal_competition_id = self._supported_competition_ids.get(comp_api_id)
-            for side in ["homeCompetitor", "awayCompetitor"]:
-                api_team_id = game.get(side, {}).get("id")
+            for side in [game.home_team, game.away_team]:
+                if side is None:
+                    continue
+                api_team_id = side.external_api_id
                 internal_team_id = self._api_to_internal_team_id.get(api_team_id)
 
                 if internal_team_id and (internal_team_id, internal_competition_id) not in self._known_team_comp_links:
@@ -119,15 +123,14 @@ class LiveMatchSyncService:
             for rec in res.data:
                 self._known_team_comp_links.add((rec["team_id"], rec["competition_id"]))
 
-    def _process_single_match(self, game_data: Dict[str, Any], notified_map: Dict[int, bool]) -> Dict[str, Any] | None:
+    async def _process_single_match(self, match:BaseMatch, notified_map: Dict[int, bool]) -> Dict[str, Any] | None:
         """
         Process the state of 1 game
-        :param game_data: data of the live match we got from the API
+        :param match: data of the live match we got from the API
         :param notified_map: map of the previous notified status of the games
         :return: updated game data
         """
         try:
-            match = MatchFactory.get_match_instance(game_data)
             ext_id = match.external_api_id
 
             current_climax = match.is_climax()
@@ -139,16 +142,17 @@ class LiveMatchSyncService:
             match.updated_at = datetime.now(timezone.utc)
             match.home_team_id = self._api_to_internal_team_id.get(match.home_team_id)
             match.away_team_id = self._api_to_internal_team_id.get(match.away_team_id)
-            match.competition_id = self._api_to_internal_team_id.get(match.competition_id)
+            match.competition_id = self._supported_competition_ids.get(match.competition_id)
             match.notified = current_climax
             match_payload = match.model_dump(mode='json', exclude_none=True)
 
             return match_payload
 
         except ValueError as e:
-            return logger.error(f"Invalid match data: {game_data}: {e}")
+            logger.error(f"Invalid match data: {match}: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Failed to process game {game_data.get('id')}: {e}")
+            logger.error(f"Failed to process game {match.external_api_id}: {e}")
             return None
 
     async def sync_live_matches(self) -> None:
@@ -162,7 +166,7 @@ class LiveMatchSyncService:
 
             supported_games = [
                 g for g in games_data
-                if int(g.get("competitionId", 0)) in self._supported_competition_ids
+                if int(g.external_api_id) in self._supported_competition_ids
             ]
 
             if not supported_games:
@@ -176,8 +180,8 @@ class LiveMatchSyncService:
             # Optimization: use only supported games for notified states
             notified_map = await self._get_db_notified_states(supported_games)
 
-
-            processed_games = [self._process_single_match(game, notified_map) for game in supported_games]
+            tasks = [self._process_single_match(game, notified_map) for game in supported_games]
+            processed_games = await asyncio.gather(*tasks)
             await get_supabase().table("matches").upsert(
                 processed_games,
                 on_conflict="external_api_id"

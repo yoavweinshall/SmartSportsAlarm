@@ -14,20 +14,20 @@ class BaseTeam(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    id: int | None = None
+    id: int | None = Field(default=None, exclude=True)
     # external_api_id corresponds to the 'id' field in the 365scores JSON
-    external_api_id: int = Field(validation_alias="id")
+    external_api_id: int = Field(validation_alias="external_api_id")
 
-    sport_id: int | None = Field(default=None, validation_alias="sportId")
-    country_id: int | None = Field(default=None, validation_alias="countryId")
+    sport_id: int | None = Field(default=None, validation_alias="sport_id")
+    country_id: int | None = Field(default=None, validation_alias="country_id")
 
     name: str = Field(validation_alias="name")
-    short_name: str | None = Field(default=None, validation_alias="shortName")
-    symbolic_name: str | None = Field(default=None, validation_alias="symbolicName")
-    name_for_url: str | None = Field(default=None, validation_alias="nameForURL")
+    short_name: str | None = Field(default=None, validation_alias="short_name")
+    symbolic_name: str | None = Field(default=None, validation_alias="symbolic_name")
+    name_for_url: str | None = Field(default=None, validation_alias="name_for_url")
 
     # 365scores provides team color in the 'color' field
-    primary_color: str | None = Field(default=None, validation_alias="color")
+    primary_color: str | None = Field(default=None, validation_alias="primary_color")
     secondary_color: str | None = Field(default=None)
 
     metadata: dict[str, Any] = Field(default_factory=dict, validation_alias="metadata")

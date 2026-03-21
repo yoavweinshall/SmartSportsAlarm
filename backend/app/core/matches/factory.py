@@ -16,8 +16,8 @@ class MatchFactory:
 
     @classmethod
     def get_match_instance(cls, data: dict) -> BaseMatch:
-        sport_id = int(data.get("sportId"))
-        competition_id = int(data.get("competitionId"))
+        sport_id = int(data.get("sport_id"))
+        competition_id = int(data.get("competition_id"))
 
         if sport_id == 2:  # NCAA Basketball games are built from halves and not quarters
             if competition_id in cls.NCAA_COMPETITION_IDS:

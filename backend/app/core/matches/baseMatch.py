@@ -4,7 +4,9 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
-from pydantic import AliasPath, BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from backend.app.core.teams import BaseTeam
 
 
 class BaseMatch(BaseModel, ABC):
@@ -18,34 +20,35 @@ class BaseMatch(BaseModel, ABC):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int | None = Field(default=None, exclude=True)
-    external_api_id: int = Field(validation_alias="id")
-    competition_id: int | None = Field(default=None, validation_alias="competitionId")
-    home_team_id: int | None = Field(default=None, validation_alias=AliasPath("homeCompetitor", "id"))
-    away_team_id: int | None = Field(default=None, validation_alias=AliasPath("awayCompetitor", "id"))
+    external_api_id: int = Field(validation_alias="external_api_id")
+    competition_id: int | None = Field(default=None, validation_alias="competition_id")
+    home_team_id: int | None = Field(default=None, validation_alias="home_team_id")
+    away_team_id: int | None = Field(default=None, validation_alias="away_team_id")
 
-    start_time: datetime = Field(validation_alias="startTime")
-    status_group: int = Field(validation_alias="statusGroup")
-    status_text: str | None = Field(default=None, validation_alias="statusText")
+    home_team: BaseTeam = Field(None, alias="home_team", exclude=True)
+    away_team: BaseTeam = Field(None, alias="away_team", exclude=True)
+
+    start_time: datetime = Field(validation_alias="start_time")
+    status_group: int = Field(validation_alias="status_group")
+    status_text: str | None = Field(default=None, validation_alias="status_text")
     # 365scores provides a numeric `gameTime` and a string `gameTimeDisplay` (e.g. "02:25").
-    game_time: str | None = Field(default=None, validation_alias="gameTimeDisplay")
+    game_time: str | None = Field(default=None, validation_alias="game_time")
 
-    home_score: int = Field(default=0, validation_alias=AliasPath("homeCompetitor", "score"))
-    away_score: int = Field(default=0, validation_alias=AliasPath("awayCompetitor", "score"))
+    home_score: int = Field(default=0, validation_alias="home_score")
+    away_score: int = Field(default=0, validation_alias="away_score")
     notified: bool = Field(default=False)
 
     metadata: dict[str, Any] = Field(default_factory=dict, validation_alias="metadata")
     updated_at: datetime | None = None
     created_at: datetime | None = None
 
-    @field_validator("home_score", "away_score", mode="before")
-    @classmethod
-    def _score_minus_one_to_zero(cls, v: Any) -> Any:
-        # 365scores sometimes uses -1 / -1.0 when score is unknown.
-        if v is None:
-            return 0
-        if v == -1 or v == -1.0:
-            return 0
-        return v
+    @model_validator(mode="after")
+    def _validate_stage(self):
+        # If we have a status_text, force it to be representable as a quarter-based stage.
+        if self.status_text and self.stage.value == 'Unknown':
+            raise ValueError(
+                f"Unrecognized quarter-based statusText for {self.__class__.__name__}: {self.status_text!r}")
+        return self
 
     @abstractmethod
     def is_climax(self) -> bool: ...

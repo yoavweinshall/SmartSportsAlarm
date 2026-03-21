@@ -3,10 +3,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import ClassVar, Dict
 
-from pydantic import model_validator
-
-from .base import BaseMatch
-from .utils.stages import HalfGameStage, QuarterGameStage, normalize_half_game_stage, normalize_quarter_game_stage
+from .baseMatch import BaseMatch
+from .utils.stages import HalfGameStage, QuarterGameStage
 from .utils.time_handle import parse_mmss_to_seconds
 
 
@@ -20,20 +18,12 @@ class BasketballMatch(BaseMatch):
     CLIMAX_MAX_SCORE_DIFF: ClassVar[int] = 8
     CLIMAX_MAX_TIME_SECONDS: ClassVar[int] = 10 * 60
 
-    @model_validator(mode="after")
-    def _validate_stage(self):
-        stage = normalize_quarter_game_stage(self.status_text)
-        # If we have a status_text, force it to be representable as a quarter-based stage.
-        if self.status_text and stage == QuarterGameStage.UNKNOWN:
-            raise ValueError(f"Unrecognized quarter-based statusText for BasketballMatch: {self.status_text!r}")
-        return self
-
+    @property
     def stage(self) -> QuarterGameStage:
-        return normalize_quarter_game_stage(self.status_text)
+        return QuarterGameStage(self.status_text)
 
     def _is_final_period(self) -> bool:
-        stage = self.stage()
-        return stage in {QuarterGameStage.Q4, QuarterGameStage.OVERTIME}
+        return self.stage in {QuarterGameStage.Q4, QuarterGameStage.OVERTIME}
 
     def remaining_time_seconds(self) -> int | None:
         """
@@ -53,7 +43,7 @@ class BasketballMatch(BaseMatch):
             return None
         if self.stage == QuarterGameStage.FINISHED:
             return 0
-        return parse_mmss_to_seconds(self.game_time) + self.STAGE_ADDITIONAL_GAME_TIME[self.status_text]
+        return parse_mmss_to_seconds(self.game_time) + self.STAGE_ADDITIONAL_GAME_TIME[self.stage]
 
     def is_climax(self) -> bool:
         seconds = self.remaining_time_seconds()
@@ -69,17 +59,10 @@ class NCAABasketBallMatch(BasketballMatch):
                                                                       HalfGameStage.SECOND_HALF: 0
                                                                       }
 
-    @model_validator(mode="after")
-    def _validate_stage(self):
-        stage = normalize_half_game_stage(self.status_text)
-        if self.status_text and stage == HalfGameStage.UNKNOWN:
-            raise ValueError(f"Unrecognized half-based statusText for NCAABasketBallMatch: {self.status_text!r}")
-        return self
-
+    @property
     def stage(self) -> HalfGameStage:
-        return normalize_half_game_stage(self.status_text)
+        return HalfGameStage(self.status_text)
 
     def _is_final_period(self) -> bool:
-        stage = self.stage()
-        return stage in {HalfGameStage.SECOND_HALF, HalfGameStage.OVERTIME}
+        return self.stage in {HalfGameStage.SECOND_HALF, HalfGameStage.OVERTIME}
 
