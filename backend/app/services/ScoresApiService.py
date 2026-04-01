@@ -9,7 +9,7 @@ class ScoresApiService:
 
     BASE_URL = "https://webws.365scores.com/web/games/allscores"
 
-    async def fetch_live_scores(self) -> List[BaseMatch]:
+    async def fetch_live_scores(self, supported_competitions: List[int]) -> List[BaseMatch]:
         """
         Fetch all current live scores from the api
         """
@@ -19,5 +19,6 @@ class ScoresApiService:
         async with httpx.AsyncClient() as client:
             response = await client.get(self.BASE_URL, params=params)
             response.raise_for_status()
-            adapter_match = [Scores365MatchAdapter.model_validate(match) for match in response.json().get("games")]
+            supported_matches = [match for match in response.json().get("games") if int(match.get("competitionId")) in supported_competitions]
+            adapter_match = [Scores365MatchAdapter.model_validate(match) for match in supported_matches]
             return [match.to_internal_match() for match in adapter_match]

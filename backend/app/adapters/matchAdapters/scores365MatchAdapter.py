@@ -14,7 +14,7 @@ class Scores365MatchAdapter(BaseModel, BaseMatchAdapter):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int | None = Field(default=None, exclude=True)
-    sport_id: int | None = Field(default=None, exclude=True)
+    sport_id: int | None = Field(default=None, validation_alias="sportId")
     external_api_id: int = Field(validation_alias="id")
     competition_id: int | None = Field(default=None, validation_alias="competitionId")
     home_team_id: int | None = Field(default=None, validation_alias=AliasPath("homeCompetitor", "id"))
@@ -48,5 +48,5 @@ class Scores365MatchAdapter(BaseModel, BaseMatchAdapter):
         return v
 
     def to_internal_match(self) -> BaseMatch:
-        self.status_text = Scores365StageAdapter.normalize(self.status_text, self.sport_id)
+        self.status_text = Scores365StageAdapter.normalize(self.status_text, self.sport_id).value
         return MatchFactory.get_match_instance(self.model_dump(mode='json', exclude_none=True))

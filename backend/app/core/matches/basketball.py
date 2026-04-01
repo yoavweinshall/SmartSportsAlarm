@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import ClassVar, Dict
+from typing import ClassVar
 
 from .baseMatch import BaseMatch
 from .utils.stages import HalfGameStage, QuarterGameStage
@@ -9,8 +9,9 @@ from .utils.time_handle import parse_mmss_to_seconds
 
 
 class BasketballMatch(BaseMatch):
-    STAGE_ADDITIONAL_GAME_TIME: ClassVar[Dict[Enum, int]] = {QuarterGameStage.Q1: 1800,
+    STAGE_ADDITIONAL_GAME_TIME: ClassVar[dict[Enum, int]] = {QuarterGameStage.Q1: 1800,
                                                                          QuarterGameStage.Q2: 1200,
+                                                                         QuarterGameStage.HALFTIME: 1200,
                                                                          QuarterGameStage.Q3: 600,
                                                                          QuarterGameStage.Q4: 0,
                                                                          QuarterGameStage.OVERTIME: 0
@@ -54,9 +55,10 @@ class BasketballMatch(BaseMatch):
 
 class NCAABasketBallMatch(BasketballMatch):
 
-    STAGE_ADDITIONAL_GAME_TIME: ClassVar[Dict[HalfGameStage, int]] = {HalfGameStage.FIRST_HALF: 1200,
+    STAGE_ADDITIONAL_GAME_TIME: ClassVar[dict[HalfGameStage, int]] = {HalfGameStage.FIRST_HALF: 1200,
                                                                       HalfGameStage.HALF_TIME: 1200,
-                                                                      HalfGameStage.SECOND_HALF: 0
+                                                                      HalfGameStage.SECOND_HALF: 0,
+                                                                      HalfGameStage.OVERTIME: 0
                                                                       }
 
     @property

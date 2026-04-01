@@ -41,7 +41,7 @@ class HalfGameStage(str, Enum):
 
     # Half-based game stages (NCAA basketball, some competitions)
     FIRST_HALF = "1st Half"
-    HALF_TIME = "Half Time"
+    HALF_TIME = "Halftime"
     SECOND_HALF = "2nd Half"
     OVERTIME = "OT"  # canonical value; OT1/OT2/... normalize here
 

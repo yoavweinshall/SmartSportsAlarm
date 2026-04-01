@@ -93,7 +93,7 @@ class LiveMatchSyncService:
             ).execute()
 
             for rec in res.data:
-                self._api_to_internal_team_id[rec["external_api_id"]] = rec["id"]
+                self._api_to_internal_team_id[int(rec["external_api_id"])] = int(rec["id"])
 
     async def _batch_sync_teams_competitions_links(self, games_data: List[BaseMatch]):
         """
@@ -101,7 +101,7 @@ class LiveMatchSyncService:
         """
         links_to_add = []
         for game in games_data:
-            comp_api_id = game.external_api_id
+            comp_api_id = game.competition_id
             internal_competition_id = self._supported_competition_ids.get(comp_api_id)
             for side in [game.home_team, game.away_team]:
                 if side is None:
@@ -162,12 +162,7 @@ class LiveMatchSyncService:
         await self._ensure_cache_loaded()
 
         try:
-            games_data = await self.api_service.fetch_live_scores()
-
-            supported_games = [
-                g for g in games_data
-                if int(g.external_api_id) in self._supported_competition_ids
-            ]
+            supported_games = await self.api_service.fetch_live_scores(list(self._supported_competition_ids.keys()))
 
             if not supported_games:
                 logger.info("No live scores found")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .base import BaseMatch
+from .baseMatch import BaseMatch
 from .basketball import BasketballMatch, NCAABasketBallMatch
 
 
