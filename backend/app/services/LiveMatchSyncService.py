@@ -160,9 +160,11 @@ class LiveMatchSyncService:
         Update the status of the live matches
         """
         await self._ensure_cache_loaded()
-
         try:
-            supported_games = await self.api_service.fetch_live_scores(list(self._supported_competition_ids.keys()))
+            supported_games = await self.api_service.fetch_matches(
+                onlyLiveGames= True,
+                competitions=",".join([str(competition_id) for competition_id in self._supported_competition_ids.keys()])
+            )
 
             if not supported_games:
                 logger.info("No live scores found")
