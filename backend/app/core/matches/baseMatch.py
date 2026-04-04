@@ -53,3 +53,6 @@ class BaseMatch(BaseModel, ABC):
 
     @abstractmethod
     def is_climax(self) -> bool: ...
+
+    @abstractmethod
+    def is_future_match(self) -> bool: ...

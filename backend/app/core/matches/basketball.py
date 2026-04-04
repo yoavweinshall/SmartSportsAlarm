@@ -45,7 +45,10 @@ class BasketballMatch(BaseMatch):
             return None
         if self.stage == QuarterGameStage.FINISHED:
             return 0
-        return parse_mmss_to_seconds(self.game_time) + self.STAGE_ADDITIONAL_GAME_TIME[self.stage]
+        return (
+            parse_mmss_to_seconds(self.game_time)
+            + self.STAGE_ADDITIONAL_GAME_TIME[self.stage]
+        )
 
     def is_climax(self) -> bool:
         seconds = self.remaining_time_seconds()
@@ -55,6 +58,17 @@ class BasketballMatch(BaseMatch):
             seconds < self.CLIMAX_MAX_TIME_SECONDS
             and abs(self.home_score - self.away_score) <= self.CLIMAX_MAX_SCORE_DIFF
         )
+
+    def is_future_match(self) -> bool:
+        return self.stage not in {
+            QuarterGameStage.Q1,
+            QuarterGameStage.Q2,
+            QuarterGameStage.Q3,
+            QuarterGameStage.Q4,
+            QuarterGameStage.HALFTIME,
+            QuarterGameStage.OVERTIME,
+            QuarterGameStage.FINISHED,
+        }
 
 
 class NCAABasketBallMatch(BasketballMatch):
@@ -72,3 +86,12 @@ class NCAABasketBallMatch(BasketballMatch):
 
     def _is_final_period(self) -> bool:
         return self.stage in {HalfGameStage.SECOND_HALF, HalfGameStage.OVERTIME}
+
+    def is_future_match(self) -> bool:
+        return self.stage in {
+            HalfGameStage.FIRST_HALF,
+            HalfGameStage.HALF_TIME,
+            HalfGameStage.SECOND_HALF,
+            QuarterGameStage.OVERTIME,
+            QuarterGameStage.FINISHED
+        }
