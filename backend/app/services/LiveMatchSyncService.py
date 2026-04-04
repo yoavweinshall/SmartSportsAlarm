@@ -1,8 +1,9 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Set, Tuple
+from typing import Any
 
+from .DbApiMapService import DbApiMapService
 from ..core.matches import BaseMatch
 from ..core.teams.baseTeam import BaseTeam
 from ..database import get_supabase
@@ -19,9 +20,9 @@ class LiveMatchSyncService:
     def __init__(self):
         self.api_service = ScoresApiService()
 
-        self._api_to_internal_team_id: Dict[int, int] = {}
-        self._supported_competition_ids: Dict[int, int] = {}
-        self._known_team_comp_links: Set[Tuple[int, int]] = set()
+        self._api_to_internal_team_id: dict[int, int] = {}
+        self._supported_competition_ids: dict[int, int] = {}
+        self._known_team_comp_links: set[tuple[int, int]] = set()
         self._cache_initialized = False
 
     async def _ensure_cache_loaded(self):
@@ -32,14 +33,9 @@ class LiveMatchSyncService:
             if self._cache_initialized:
                 return
 
-            comp_res = await get_supabase().table("competitions").select("id", "external_api_id").execute()
-            self._supported_competition_ids = {int(rec["external_api_id"]): int(rec["id"]) for rec in comp_res.data}
-
-            team_res = await get_supabase().table("teams").select("id, external_api_id").execute()
-            self._api_to_internal_team_id = {int(rec["external_api_id"]): int(rec["id"]) for rec in team_res.data}
-
-            link_res = await get_supabase().table("team_competitions").select("team_id, competition_id").execute()
-            self._known_team_comp_links = {(int(rec["team_id"]), int(rec["competition_id"])) for rec in link_res.data}
+            self._supported_competition_ids = await DbApiMapService.get_competition_mapping()
+            self._api_to_internal_team_id = await DbApiMapService.get_team_mapping()
+            self._known_team_comp_links = DbApiMapService.get_team_competitions_pairing()
 
             self._cache_initialized = True
             logger.info(
@@ -50,7 +46,7 @@ class LiveMatchSyncService:
             logger.error(f"Critical error during sync cache initialization: {e}")
 
     @staticmethod
-    async def _get_db_notified_states(games_data: List[BaseMatch]) -> Dict[int, bool]:
+    async def _get_db_notified_states(games_data: list[BaseMatch]) -> dict[int, bool]:
         """
         Get the status of the games that are on the DB
         :param games_data: data of the live matches we got from the API
@@ -70,11 +66,11 @@ class LiveMatchSyncService:
             for rec in response.data
         }
 
-    async def _batch_sync_teams(self, games_data: List[BaseMatch]):
+    async def _batch_sync_teams(self, games_data: list[BaseMatch]):
         """
         Extracts new teams, performing batch upserts.
         """
-        new_teams: Dict[int, BaseTeam] = {}
+        new_teams: dict[int, BaseTeam] = {}
         for game in games_data:
             for side in [game.home_team, game.away_team]:
                 if side is None:
@@ -95,7 +91,7 @@ class LiveMatchSyncService:
             for rec in res.data:
                 self._api_to_internal_team_id[int(rec["external_api_id"])] = int(rec["id"])
 
-    async def _batch_sync_teams_competitions_links(self, games_data: List[BaseMatch]):
+    async def _batch_sync_teams_competitions_links(self, games_data: list[BaseMatch]):
         """
         Extracts new links, performing batch upserts.
         """
@@ -123,7 +119,7 @@ class LiveMatchSyncService:
             for rec in res.data:
                 self._known_team_comp_links.add((rec["team_id"], rec["competition_id"]))
 
-    async def _process_single_match(self, match:BaseMatch, notified_map: Dict[int, bool]) -> Dict[str, Any] | None:
+    async def _process_single_match(self, match:BaseMatch, notified_map: dict[int, bool]) -> dict[str, Any] | None:
         """
         Process the state of 1 game
         :param match: data of the live match we got from the API
