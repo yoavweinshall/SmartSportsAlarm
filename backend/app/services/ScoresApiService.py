@@ -1,7 +1,7 @@
 import httpx
 
-from backend.app.adapters.matchAdapters.scores365MatchAdapter import Scores365MatchAdapter
-from backend.app.core.matches import BaseMatch
+from ..adapters.matchAdapters.scores365MatchAdapter import Scores365MatchAdapter
+from ..core.matches import BaseMatch
 
 
 class ScoresApiService:

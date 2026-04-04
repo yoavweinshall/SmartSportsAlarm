@@ -1,11 +1,9 @@
-import asyncio
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
-from .DbApiMapService import DbApiMapService
+from .CacheService import CacheService
+from .MatchProcessService import MatchProcessService
 from ..core.matches import BaseMatch
-from ..core.teams.baseTeam import BaseTeam
 from ..database import get_supabase
 from .ScoresApiService import ScoresApiService
 
@@ -16,34 +14,6 @@ class LiveMatchSyncService:
     """
     Syncing data of live matches from the api to the DB
     """
-
-    def __init__(self):
-
-        self._api_to_internal_team_id: dict[int, int] = {}
-        self._supported_competition_ids: dict[int, int] = {}
-        self._known_team_comp_links: set[tuple[int, int]] = set()
-        self._cache_initialized = False
-
-    async def _ensure_cache_loaded(self):
-        """
-        Ensures the cache is populated. Cannot be in __init__ because it requires 'await'.
-        """
-        try:
-            if self._cache_initialized:
-                return
-
-            self._supported_competition_ids = await DbApiMapService.get_competition_mapping()
-            self._api_to_internal_team_id = await DbApiMapService.get_team_mapping()
-            self._known_team_comp_links = DbApiMapService.get_team_competitions_pairing()
-
-            self._cache_initialized = True
-            logger.info(
-                f"Sync Cache Ready: {len(self._supported_competition_ids)} competitions, "
-                f"{len(self._api_to_internal_team_id)} teams loaded."
-            )
-
-        except Exception as e:
-            logger.error(f"Critical error during sync cache initialization: {e}")
 
     @staticmethod
     async def _get_db_notified_states(games_data: list[BaseMatch]) -> dict[int, bool]:
@@ -66,102 +36,42 @@ class LiveMatchSyncService:
 
         return {rec["external_api_id"]: rec.get("notified", False) for rec in response.data}
 
-    async def _batch_sync_teams(self, games_data: list[BaseMatch]):
-        """
-        Extracts new teams, performing batch upserts.
-        """
-        new_teams: dict[int, BaseTeam] = {}
-        for game in games_data:
-            for side in [game.home_team, game.away_team]:
-                if side is None:
-                    continue
-                api_id = side.external_api_id
-
-                if api_id and api_id not in self._api_to_internal_team_id:
-                    side.country_id = None  # dealing with states inside the US is a lot of mess
-                    new_teams[api_id] = side.model_dump(mode="json", exclude_none=True)
-
-        if new_teams:
-            # Return generated internal IDs for mapping
-            res = (
-                await get_supabase()
-                .table("teams")
-                .upsert(list(new_teams.values()), on_conflict="external_api_id")
-                .execute()
-            )
-
-            for rec in res.data:
-                self._api_to_internal_team_id[int(rec["external_api_id"])] = int(rec["id"])
-
-    async def _batch_sync_teams_competitions_links(self, games_data: list[BaseMatch]):
-        """
-        Extracts new links, performing batch upserts.
-        """
-        links_to_add = []
-        for game in games_data:
-            comp_api_id = game.competition_id
-            internal_competition_id = self._supported_competition_ids.get(comp_api_id)
-            for side in [game.home_team, game.away_team]:
-                if side is None:
-                    continue
-                api_team_id = side.external_api_id
-                internal_team_id = self._api_to_internal_team_id.get(api_team_id)
-
-                if internal_team_id and (internal_team_id, internal_competition_id) not in self._known_team_comp_links:
-                    links_to_add.append({"team_id": internal_team_id, "competition_id": internal_competition_id})
-
-        if links_to_add:
-            res = (
-                await get_supabase()
-                .table("team_competitions")
-                .upsert(links_to_add, on_conflict="team_id, competition_id")
-                .execute()
-            )
-            for rec in res.data:
-                self._known_team_comp_links.add((rec["team_id"], rec["competition_id"]))
-
-    async def _process_single_match(self, match: BaseMatch, notified_map: dict[int, bool]) -> dict[str, Any] | None:
+    @classmethod
+    def _process_single_match(cls, match: BaseMatch, notified_map: dict[int, bool]) -> dict[str, Any] | None:
         """
         Process the state of 1 game
         :param match: data of the live match we got from the API
         :param notified_map: map of the previous notified status of the games
         :return: updated game data
         """
-        try:
-            ext_id = match.external_api_id
+        match = MatchProcessService.process_single_match(match)
 
-            current_climax = match.is_climax()
-            previously_notified = notified_map.get(ext_id, False)
+        ext_id = match.external_api_id
+        current_climax = match.is_climax()
+        previously_notified = notified_map.get(ext_id, False)
 
-            if current_climax and not previously_notified:
-                self._handle_new_climax(match)
+        if current_climax and not previously_notified:
+            cls._handle_new_climax(match)
 
-            match.updated_at = datetime.now(timezone.utc)
-            match.home_team_id = self._api_to_internal_team_id.get(match.home_team_id)
-            match.away_team_id = self._api_to_internal_team_id.get(match.away_team_id)
-            match.competition_id = self._supported_competition_ids.get(match.competition_id)
-            match.notified = current_climax
-            match_payload = match.model_dump(mode="json", exclude_none=True)
+        match.notified = current_climax
+        match_payload = match.model_dump(mode="json", exclude_none=True)
 
-            return match_payload
+        return match_payload
 
-        except ValueError as e:
-            logger.error(f"Invalid match data: {match}: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Failed to process game {match.external_api_id}: {e}")
-            return None
-
-    async def sync_live_matches(self) -> None:
+    @classmethod
+    async def sync_live_matches(cls) -> None:
         """
         Update the status of the live matches
         """
-        await self._ensure_cache_loaded()
+        await CacheService.get_instance().ensure_cache_loaded()
         try:
             supported_games = await ScoresApiService.fetch_matches(
                 onlyLiveGames=True,
                 competitions=",".join(
-                    [str(competition_id) for competition_id in self._supported_competition_ids.keys()]
+                    [
+                        str(competition_id)
+                        for competition_id in CacheService.get_instance().supported_competition_ids.keys()
+                    ]
                 ),
             )
 
@@ -169,20 +79,16 @@ class LiveMatchSyncService:
                 logger.info("No live scores found")
                 return
 
-            # Batch sync teams and their competition links
-            await self._batch_sync_teams(supported_games)
-            await self._batch_sync_teams_competitions_links(supported_games)
-
             # Optimization: use only supported games for notified states
-            notified_map = await self._get_db_notified_states(supported_games)
+            notified_map = await cls._get_db_notified_states(supported_games)
 
-            tasks = [self._process_single_match(game, notified_map) for game in supported_games]
-            processed_games = await asyncio.gather(*tasks)
+            processed_games = [cls._process_single_match(game, notified_map) for game in supported_games]
             await get_supabase().table("matches").upsert(processed_games, on_conflict="external_api_id").execute()
 
         except Exception as e:
             logger.error(f"Sync service error: {e}")
 
-    def _handle_new_climax(self, match):
+    @classmethod
+    def _handle_new_climax(cls, match):
         # TODO send alarm to user
         logger.info(f"New climax detected: {match.external_api_id}")

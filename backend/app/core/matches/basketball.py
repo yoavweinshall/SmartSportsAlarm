@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from enum import Enum
 from typing import ClassVar
 
@@ -45,10 +43,7 @@ class BasketballMatch(BaseMatch):
             return None
         if self.stage == QuarterGameStage.FINISHED:
             return 0
-        return (
-            parse_mmss_to_seconds(self.game_time)
-            + self.STAGE_ADDITIONAL_GAME_TIME[self.stage]
-        )
+        return parse_mmss_to_seconds(self.game_time) + self.STAGE_ADDITIONAL_GAME_TIME[self.stage]
 
     def is_climax(self) -> bool:
         seconds = self.remaining_time_seconds()
@@ -88,10 +83,10 @@ class NCAABasketBallMatch(BasketballMatch):
         return self.stage in {HalfGameStage.SECOND_HALF, HalfGameStage.OVERTIME}
 
     def is_future_match(self) -> bool:
-        return self.stage in {
+        return self.stage not in {
             HalfGameStage.FIRST_HALF,
             HalfGameStage.HALF_TIME,
             HalfGameStage.SECOND_HALF,
             QuarterGameStage.OVERTIME,
-            QuarterGameStage.FINISHED
+            QuarterGameStage.FINISHED,
         }
