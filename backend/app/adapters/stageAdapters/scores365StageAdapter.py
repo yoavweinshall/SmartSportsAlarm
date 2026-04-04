@@ -9,15 +9,7 @@ from ...core.matches.utils.stages import HalfGameStage, QuarterGameStage, Common
 
 class Scores365StageAdapter(BaseStageAdapter):
 
-    _FINISHED_STRINGS = {
-        "final",
-        "finished",
-        "ended",
-        "game over",
-        "full time",
-        "ft",
-        "just ended"
-    }
+    _FINISHED_STRINGS = {"final", "finished", "ended", "game over", "full time", "ft", "just ended"}
 
     _COMMON_EXACT: dict[str, CommonMatchStage] = {
         CommonMatchStage.SCHEDULED.value: CommonMatchStage.SCHEDULED,

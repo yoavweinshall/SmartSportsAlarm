@@ -45,11 +45,11 @@ class BaseMatch(BaseModel, ABC):
     @model_validator(mode="after")
     def _validate_stage(self):
         # If we have a status_text, force it to be representable as a quarter-based stage.
-        if self.status_text and self.stage.value == 'Unknown':
+        if self.status_text and self.stage.value == "Unknown":
             raise ValueError(
-                f"Unrecognized quarter-based statusText for {self.__class__.__name__}: {self.status_text!r}")
+                f"Unrecognized quarter-based statusText for {self.__class__.__name__}: {self.status_text!r}"
+            )
         return self
 
     @abstractmethod
     def is_climax(self) -> bool: ...
-

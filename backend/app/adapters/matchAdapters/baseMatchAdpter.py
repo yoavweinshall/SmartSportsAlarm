@@ -2,6 +2,7 @@ from abc import abstractmethod
 
 from ...core.matches import BaseMatch
 
+
 class BaseMatchAdapter:
 
     @abstractmethod

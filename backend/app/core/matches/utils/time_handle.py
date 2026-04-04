@@ -1,5 +1,6 @@
 SECONDS_IN_MINUTE = 60
 
+
 def parse_mmss_to_seconds(value: str | None) -> int | None:
     if not value:
         return 0

@@ -1,10 +1,13 @@
 import asyncio
 import logging
 import sys
+from typing import Any
 
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+
+from backend.app.core.matches import BaseMatch
 from .database import init_supabase
 from .services.LiveMatchSyncService import LiveMatchSyncService
 
@@ -61,6 +64,20 @@ app = FastAPI(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/matches")
+async def get_matches(user_id: int,
+                      my_only: bool = False,
+                      live: bool = None,
+                      competition_id: int = None,
+                      team_id: int = None,
+                      from_date: int = None,
+                      to_date: int = None,
+                      ) -> list[dict[str, Any]]:
+    if not (my_only and competition_id and team_id):
+        # TODO set time range as today only
+
 
 
 if __name__ == "__main__":

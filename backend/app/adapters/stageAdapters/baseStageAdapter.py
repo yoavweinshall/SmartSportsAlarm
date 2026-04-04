@@ -8,13 +8,11 @@ class BaseStageAdapter:
 
     @classmethod
     @abstractmethod
-    def to_internal_quarter_stage(cls, stage: str) -> QuarterGameStage:
-        ...
+    def to_internal_quarter_stage(cls, stage: str) -> QuarterGameStage: ...
 
     @classmethod
     @abstractmethod
-    def to_internal_half_stage(cls, stage: str) -> HalfGameStage:
-        ...
+    def to_internal_half_stage(cls, stage: str) -> HalfGameStage: ...
 
     @classmethod
     def _normalize_basketball_stage(cls, status: str) -> Union[CommonMatchStage, HalfGameStage, QuarterGameStage]:

@@ -8,6 +8,7 @@ from supabase import AsyncClient, acreate_client
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
+
 def _require_env(name: str) -> str:
     value = os.getenv(name)
     if not value:
@@ -16,16 +17,19 @@ def _require_env(name: str) -> str:
         raise RuntimeError(f"Missing environment variable {name}")
     return value
 
+
 SUPABASE_URL = _require_env("SUPABASE_URL")
 SUPABASE_KEY = _require_env("SUPABASE_KEY")
 
 # Renamed global variable to avoid shadowing the library name
 supabase_client: AsyncClient | None = None
 
+
 async def init_supabase():
     global supabase_client
     if supabase_client is None:
         supabase_client = await acreate_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 def get_supabase() -> AsyncClient:
     if supabase_client is None:

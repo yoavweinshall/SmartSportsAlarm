@@ -18,7 +18,6 @@ class LiveMatchSyncService:
     """
 
     def __init__(self):
-        self.api_service = ScoresApiService()
 
         self._api_to_internal_team_id: dict[int, int] = {}
         self._supported_competition_ids: dict[int, int] = {}
@@ -40,7 +39,8 @@ class LiveMatchSyncService:
             self._cache_initialized = True
             logger.info(
                 f"Sync Cache Ready: {len(self._supported_competition_ids)} competitions, "
-                f"{len(self._api_to_internal_team_id)} teams loaded.")
+                f"{len(self._api_to_internal_team_id)} teams loaded."
+            )
 
         except Exception as e:
             logger.error(f"Critical error during sync cache initialization: {e}")
@@ -56,15 +56,15 @@ class LiveMatchSyncService:
         if not external_ids:
             return {}
 
-        response = await get_supabase().table("matches") \
-            .select("external_api_id, notified") \
-            .in_("external_api_id", external_ids) \
+        response = (
+            await get_supabase()
+            .table("matches")
+            .select("external_api_id, notified")
+            .in_("external_api_id", external_ids)
             .execute()
+        )
 
-        return {
-            rec["external_api_id"]: rec.get("notified", False)
-            for rec in response.data
-        }
+        return {rec["external_api_id"]: rec.get("notified", False) for rec in response.data}
 
     async def _batch_sync_teams(self, games_data: list[BaseMatch]):
         """
@@ -78,15 +78,17 @@ class LiveMatchSyncService:
                 api_id = side.external_api_id
 
                 if api_id and api_id not in self._api_to_internal_team_id:
-                    side.country_id =  None  # dealing with states inside the US is a lot of mess
-                    new_teams[api_id] = side.model_dump(mode='json', exclude_none=True)
+                    side.country_id = None  # dealing with states inside the US is a lot of mess
+                    new_teams[api_id] = side.model_dump(mode="json", exclude_none=True)
 
         if new_teams:
             # Return generated internal IDs for mapping
-            res = await get_supabase().table("teams").upsert(
-                list(new_teams.values()),
-                on_conflict="external_api_id"
-            ).execute()
+            res = (
+                await get_supabase()
+                .table("teams")
+                .upsert(list(new_teams.values()), on_conflict="external_api_id")
+                .execute()
+            )
 
             for rec in res.data:
                 self._api_to_internal_team_id[int(rec["external_api_id"])] = int(rec["id"])
@@ -106,20 +108,19 @@ class LiveMatchSyncService:
                 internal_team_id = self._api_to_internal_team_id.get(api_team_id)
 
                 if internal_team_id and (internal_team_id, internal_competition_id) not in self._known_team_comp_links:
-                    links_to_add.append({
-                        "team_id": internal_team_id,
-                        "competition_id": internal_competition_id
-                    })
+                    links_to_add.append({"team_id": internal_team_id, "competition_id": internal_competition_id})
 
         if links_to_add:
-            res = await get_supabase().table("team_competitions").upsert(
-                links_to_add,
-                on_conflict="team_id, competition_id"
-            ).execute()
+            res = (
+                await get_supabase()
+                .table("team_competitions")
+                .upsert(links_to_add, on_conflict="team_id, competition_id")
+                .execute()
+            )
             for rec in res.data:
                 self._known_team_comp_links.add((rec["team_id"], rec["competition_id"]))
 
-    async def _process_single_match(self, match:BaseMatch, notified_map: dict[int, bool]) -> dict[str, Any] | None:
+    async def _process_single_match(self, match: BaseMatch, notified_map: dict[int, bool]) -> dict[str, Any] | None:
         """
         Process the state of 1 game
         :param match: data of the live match we got from the API
@@ -140,7 +141,7 @@ class LiveMatchSyncService:
             match.away_team_id = self._api_to_internal_team_id.get(match.away_team_id)
             match.competition_id = self._supported_competition_ids.get(match.competition_id)
             match.notified = current_climax
-            match_payload = match.model_dump(mode='json', exclude_none=True)
+            match_payload = match.model_dump(mode="json", exclude_none=True)
 
             return match_payload
 
@@ -157,9 +158,11 @@ class LiveMatchSyncService:
         """
         await self._ensure_cache_loaded()
         try:
-            supported_games = await self.api_service.fetch_matches(
-                onlyLiveGames= True,
-                competitions=",".join([str(competition_id) for competition_id in self._supported_competition_ids.keys()])
+            supported_games = await ScoresApiService.fetch_matches(
+                onlyLiveGames=True,
+                competitions=",".join(
+                    [str(competition_id) for competition_id in self._supported_competition_ids.keys()]
+                ),
             )
 
             if not supported_games:
@@ -175,10 +178,7 @@ class LiveMatchSyncService:
 
             tasks = [self._process_single_match(game, notified_map) for game in supported_games]
             processed_games = await asyncio.gather(*tasks)
-            await get_supabase().table("matches").upsert(
-                processed_games,
-                on_conflict="external_api_id"
-            ).execute()
+            await get_supabase().table("matches").upsert(processed_games, on_conflict="external_api_id").execute()
 
         except Exception as e:
             logger.error(f"Sync service error: {e}")

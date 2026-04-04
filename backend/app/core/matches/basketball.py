@@ -9,13 +9,14 @@ from .utils.time_handle import parse_mmss_to_seconds
 
 
 class BasketballMatch(BaseMatch):
-    STAGE_ADDITIONAL_GAME_TIME: ClassVar[dict[Enum, int]] = {QuarterGameStage.Q1: 1800,
-                                                                         QuarterGameStage.Q2: 1200,
-                                                                         QuarterGameStage.HALFTIME: 1200,
-                                                                         QuarterGameStage.Q3: 600,
-                                                                         QuarterGameStage.Q4: 0,
-                                                                         QuarterGameStage.OVERTIME: 0
-                                                                         }
+    STAGE_ADDITIONAL_GAME_TIME: ClassVar[dict[Enum, int]] = {
+        QuarterGameStage.Q1: 1800,
+        QuarterGameStage.Q2: 1200,
+        QuarterGameStage.HALFTIME: 1200,
+        QuarterGameStage.Q3: 600,
+        QuarterGameStage.Q4: 0,
+        QuarterGameStage.OVERTIME: 0,
+    }
     CLIMAX_MAX_SCORE_DIFF: ClassVar[int] = 8
     CLIMAX_MAX_TIME_SECONDS: ClassVar[int] = 10 * 60
 
@@ -50,16 +51,20 @@ class BasketballMatch(BaseMatch):
         seconds = self.remaining_time_seconds()
         if seconds is None:
             return False
-        return seconds < self.CLIMAX_MAX_TIME_SECONDS and abs(self.home_score - self.away_score) <= self.CLIMAX_MAX_SCORE_DIFF
+        return (
+            seconds < self.CLIMAX_MAX_TIME_SECONDS
+            and abs(self.home_score - self.away_score) <= self.CLIMAX_MAX_SCORE_DIFF
+        )
 
 
 class NCAABasketBallMatch(BasketballMatch):
 
-    STAGE_ADDITIONAL_GAME_TIME: ClassVar[dict[HalfGameStage, int]] = {HalfGameStage.FIRST_HALF: 1200,
-                                                                      HalfGameStage.HALF_TIME: 1200,
-                                                                      HalfGameStage.SECOND_HALF: 0,
-                                                                      HalfGameStage.OVERTIME: 0
-                                                                      }
+    STAGE_ADDITIONAL_GAME_TIME: ClassVar[dict[HalfGameStage, int]] = {
+        HalfGameStage.FIRST_HALF: 1200,
+        HalfGameStage.HALF_TIME: 1200,
+        HalfGameStage.SECOND_HALF: 0,
+        HalfGameStage.OVERTIME: 0,
+    }
 
     @property
     def stage(self) -> HalfGameStage:
@@ -67,4 +72,3 @@ class NCAABasketBallMatch(BasketballMatch):
 
     def _is_final_period(self) -> bool:
         return self.stage in {HalfGameStage.SECOND_HALF, HalfGameStage.OVERTIME}
-

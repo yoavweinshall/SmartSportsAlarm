@@ -8,6 +8,7 @@ class MatchFactory:
     """
     Creates the appropriate match model based on 365scores `sportId`.
     """
+
     NCAA_COMPETITION_IDS = {7630, 109}
 
     SPORT_ID_TO_CLASS: dict[int, type[BaseMatch]] = {
@@ -29,4 +30,3 @@ class MatchFactory:
         if match_cls is None:
             raise ValueError(f"Unsupported or missing sportId: {sport_id!r}")
         return match_cls.model_validate(data)
-

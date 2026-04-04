@@ -49,4 +49,4 @@ class Scores365MatchAdapter(BaseModel, BaseMatchAdapter):
 
     def to_internal_match(self) -> BaseMatch:
         self.status_text = Scores365StageAdapter.normalize(self.status_text, self.sport_id).value
-        return MatchFactory.get_match_instance(self.model_dump(mode='json', exclude_none=True))
+        return MatchFactory.get_match_instance(self.model_dump(mode="json", exclude_none=True))

@@ -9,7 +9,6 @@ from ...core.teams import BaseTeam
 
 class Scores365TeamAdapter(BaseModel, BaseTeamAdapter):
 
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int | None = None
@@ -32,4 +31,4 @@ class Scores365TeamAdapter(BaseModel, BaseTeamAdapter):
     created_at: datetime | None = None
 
     def _to_internal_team(self) -> BaseTeam:
-        return BaseTeam.model_validate(self.model_dump(mode='json', exclude_none=True))
+        return BaseTeam.model_validate(self.model_dump(mode="json", exclude_none=True))
