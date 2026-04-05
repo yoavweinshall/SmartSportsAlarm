@@ -91,3 +91,11 @@ CREATE TABLE public.teams (
   CONSTRAINT teams_sport_id_fkey FOREIGN KEY (sport_id) REFERENCES public.sports(id),
   CONSTRAINT teams_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
 );
+CREATE TABLE public.user_followed_matches (
+  user_id uuid NOT NULL,
+  match_id integer NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_followed_matches_pkey PRIMARY KEY (user_id, match_id),
+  CONSTRAINT user_followed_matches_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT user_followed_matches_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id)
+);
