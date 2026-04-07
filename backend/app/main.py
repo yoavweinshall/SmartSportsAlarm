@@ -36,15 +36,15 @@ async def update_live_matches(interval_seconds: int = 60):
         await asyncio.sleep(interval_seconds)
 
 
-async def update_future_matches(interval_hours: int = 24):
+async def update_none_live_matches_on_db(interval_hours: int = 24):
     """
     Background worker that runs the sync service of the future matches in a loop.
     """
     logger.info("Starting sync future matches worker")
-    sync_service = DbMatchesService()
     while True:
         try:
-            await sync_service.add_future_matches_to_db()
+            await DbMatchesService.add_future_matches_to_db()
+            await DbMatchesService.remove_old_matches_from_db()
         except Exception as e:
             logger.error(f"Background sync future matches worker encountered an error: {e}")
 
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
 
     # Create the background task
     live_matches_sync_task = asyncio.create_task(update_live_matches(interval_seconds=60))
-    future_matches_sync_task = asyncio.create_task(update_future_matches(interval_hours=24))
+    future_matches_sync_task = asyncio.create_task(update_none_live_matches_on_db(interval_hours=24))
 
     yield
 

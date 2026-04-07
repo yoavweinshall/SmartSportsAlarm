@@ -1,6 +1,16 @@
 /**
- * Mirrors `backend/app/schemas/schema.sql` — matches, teams, competitions.
+ * Mirrors `backend/app/schemas/schema.sql` — matches, teams, competitions, profiles.
  */
+
+export interface Profile {
+  id: string;
+  username: string;
+  push_token: string | null;
+  timezone: string;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Competition {
   id: number;

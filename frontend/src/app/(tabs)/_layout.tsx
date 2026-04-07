@@ -1,11 +1,12 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { useAuth } from '@/providers/AuthProvider';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -16,12 +17,38 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { session, isLoading } = useAuth();
+
+  // Call ALL hooks unconditionally before any early return.
+  // useClientOnlyValue uses useState + useEffect internally (native version),
+  // so it MUST be called on every render regardless of auth state.
+  const headerShown = useClientOnlyValue(false, true);
+
+  // #region agent log
+  console.log('[DEBUG][H-I] TabLayout — isLoading:', isLoading, 'hasSession:', !!session, 'headerShown:', headerShown);
+  fetch('http://127.0.0.1:7390/ingest/0ca4486e-1b32-4202-ad02-57ca54191351',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'89800c'},body:JSON.stringify({sessionId:'89800c',runId:'fix-hooks',location:'(tabs)/_layout.tsx:render',message:'TabLayout rendered',data:{isLoading,hasSession:!!session,headerShown},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
+  // #region agent log
+  console.log('[DEBUG][f1cbd7][T1] TabLayout hooks executed', {
+    isLoading,
+    hasSession: !!session,
+  });
+  // #endregion
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: useClientOnlyValue(false, true),
+        headerShown,
       }}>
       <Tabs.Screen
         name="index"
@@ -42,13 +69,6 @@ export default function TabLayout() {
               </Pressable>
             </Link>
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="login"
-        options={{
-          title: 'Login',
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
     </Tabs>
