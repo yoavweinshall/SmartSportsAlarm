@@ -6,7 +6,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from backend.app.services import DbFutureMatchesService
+from backend.app.services import DbMatchesService
 from .database import init_supabase
 from .services.LiveMatchSyncService import LiveMatchSyncService
 
@@ -41,7 +41,7 @@ async def update_future_matches(interval_hours: int = 24):
     Background worker that runs the sync service of the future matches in a loop.
     """
     logger.info("Starting sync future matches worker")
-    sync_service = DbFutureMatchesService()
+    sync_service = DbMatchesService()
     while True:
         try:
             await sync_service.add_future_matches_to_db()
