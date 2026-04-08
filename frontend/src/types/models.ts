@@ -47,8 +47,8 @@ export interface Match {
   home_team_id: number | null;
   away_team_id: number | null;
   start_time: string;
-  status_group: number;
-  status_text: string | null;
+  stage_group: number;
+  match_stage: string | null;
   game_time: string | null;
   home_score: number;
   away_score: number;

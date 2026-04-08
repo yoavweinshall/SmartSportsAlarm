@@ -71,7 +71,7 @@ export function MatchCard({
       <View className="mt-3 flex-row items-center justify-between">
         <View>
           <Text className="text-sm text-neutral-600 dark:text-neutral-300">
-            {match.status_text ?? 'Live'} · {match.game_time ?? '—'}
+            {match.match_stage ?? 'Live'} · {match.game_time ?? '—'}
           </Text>
         </View>
         <Pressable

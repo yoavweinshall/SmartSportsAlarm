@@ -29,8 +29,8 @@ class BaseMatch(BaseModel, ABC):
     away_team: BaseTeam = Field(None, alias="away_team", exclude=True)
 
     start_time: datetime = Field(validation_alias="start_time")
-    status_group: int = Field(validation_alias="status_group")
-    status_text: str | None = Field(default=None, validation_alias="status_text")
+    stage_group: int = Field(validation_alias="stage_group")
+    match_stage: str | None = Field(default=None, validation_alias="match_stage")
     # 365scores provides a numeric `gameTime` and a string `gameTimeDisplay` (e.g. "02:25").
     game_time: str | None = Field(default=None, validation_alias="game_time")
 
@@ -44,15 +44,15 @@ class BaseMatch(BaseModel, ABC):
 
     @model_validator(mode="after")
     def _validate_stage(self):
-        # If we have a status_text, force it to be representable as a quarter-based stage.
-        if self.status_text and self.stage.value == "Unknown":
+        # If we have a match_stage, force it to be representable as a quarter-based stage.
+        if self.match_stage and self.stage.value == "Unknown":
             raise ValueError(
-                f"Unrecognized quarter-based statusText for {self.__class__.__name__}: {self.status_text!r}"
+                f"Unrecognized quarter-based statusText for {self.__class__.__name__}: {self.match_stage!r}"
             )
         return self
 
     @abstractmethod
     def is_climax(self) -> bool: ...
 
-    @abstractmethod
-    def is_future_match(self) -> bool: ...
+    def is_future_match(self) -> bool:
+        return self.stage_group == 2

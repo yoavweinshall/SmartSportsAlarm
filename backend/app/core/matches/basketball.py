@@ -20,7 +20,7 @@ class BasketballMatch(BaseMatch):
 
     @property
     def stage(self) -> QuarterGameStage:
-        return QuarterGameStage(self.status_text)
+        return QuarterGameStage(self.match_stage)
 
     def _is_final_period(self) -> bool:
         return self.stage in {QuarterGameStage.Q4, QuarterGameStage.OVERTIME}
@@ -54,17 +54,6 @@ class BasketballMatch(BaseMatch):
             and abs(self.home_score - self.away_score) <= self.CLIMAX_MAX_SCORE_DIFF
         )
 
-    def is_future_match(self) -> bool:
-        return self.stage not in {
-            QuarterGameStage.Q1,
-            QuarterGameStage.Q2,
-            QuarterGameStage.Q3,
-            QuarterGameStage.Q4,
-            QuarterGameStage.HALFTIME,
-            QuarterGameStage.OVERTIME,
-            QuarterGameStage.FINISHED,
-        }
-
 
 class NCAABasketBallMatch(BasketballMatch):
 
@@ -77,16 +66,7 @@ class NCAABasketBallMatch(BasketballMatch):
 
     @property
     def stage(self) -> HalfGameStage:
-        return HalfGameStage(self.status_text)
+        return HalfGameStage(self.match_stage)
 
     def _is_final_period(self) -> bool:
         return self.stage in {HalfGameStage.SECOND_HALF, HalfGameStage.OVERTIME}
-
-    def is_future_match(self) -> bool:
-        return self.stage not in {
-            HalfGameStage.FIRST_HALF,
-            HalfGameStage.HALF_TIME,
-            HalfGameStage.SECOND_HALF,
-            QuarterGameStage.OVERTIME,
-            QuarterGameStage.FINISHED,
-        }

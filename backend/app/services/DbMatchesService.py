@@ -45,7 +45,7 @@ class DbMatchesService:
         """
         target_delete_date = datetime.today() - timedelta(days=2)
         await get_supabase().table("matches").delete("match_id").eq(
-            "status_text", "Finished"
+            "match_stage", "Finished"
         ).eq("updated_at", target_delete_date.isoformat()).execute()
 
     @staticmethod
@@ -57,12 +57,12 @@ class DbMatchesService:
         matches_in_db = (
             await get_supabase()
             .table("matches")
-            .select("external_api_id", "status_text", "start_time")
+            .select("external_api_id", "match_stage", "start_time")
             .execute()
         )
         return {
             rec["external_api_id"]: {
-                "status_text": rec["status_text"],
+                "match_stage": rec["match_stage"],
                 "start_time": rec["start_time"],
             }
             for rec in matches_in_db.data
@@ -81,8 +81,8 @@ class DbMatchesService:
         if existing_match_data is None:
             return True
         return (
-            new_match.status_text == existing_match_data["status_text"]
-            and new_match.start_time == existing_match_data["start_time"]
+                new_match.match_stage == existing_match_data["match_stage"]
+                and new_match.start_time == existing_match_data["start_time"]
         )
 
     @classmethod

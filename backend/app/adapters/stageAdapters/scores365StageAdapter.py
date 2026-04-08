@@ -35,11 +35,11 @@ class Scores365StageAdapter(BaseStageAdapter):
             return None
 
     @classmethod
-    def __normalize_common_stage(cls, status_text: str | None) -> CommonMatchStage:
-        if not status_text:
+    def __normalize_common_stage(cls, match_stage: str | None) -> CommonMatchStage:
+        if not match_stage:
             return CommonMatchStage.UNKNOWN
 
-        s = status_text.strip()
+        s = match_stage.strip()
         exact = cls._COMMON_EXACT.get(s)
         if exact is not None:
             return exact
@@ -63,29 +63,29 @@ class Scores365StageAdapter(BaseStageAdapter):
         return enum_cls._value2member_map_.get(value.strip())  # type: ignore[attr-defined]
 
     @classmethod
-    def to_internal_half_stage(cls, status_text: str) -> HalfGameStage:
-        common_mapped = cls.__map_common_stage_to_enum(HalfGameStage, cls.__normalize_common_stage(status_text))
+    def to_internal_half_stage(cls, match_stage: str) -> HalfGameStage:
+        common_mapped = cls.__map_common_stage_to_enum(HalfGameStage, cls.__normalize_common_stage(match_stage))
         if common_mapped is not None:
             return common_mapped
 
-        if cls.__normalize_overtime(status_text):
+        if cls.__normalize_overtime(match_stage):
             return HalfGameStage.OVERTIME
 
-        direct = cls.__enum_from_value(HalfGameStage, status_text)
+        direct = cls.__enum_from_value(HalfGameStage, match_stage)
         if direct is not None:
             return direct
         return HalfGameStage.UNKNOWN
 
     @classmethod
-    def to_internal_quarter_stage(cls, status_text: str) -> QuarterGameStage:
-        common_mapped = cls.__map_common_stage_to_enum(QuarterGameStage, cls.__normalize_common_stage(status_text))
+    def to_internal_quarter_stage(cls, match_stage: str) -> QuarterGameStage:
+        common_mapped = cls.__map_common_stage_to_enum(QuarterGameStage, cls.__normalize_common_stage(match_stage))
         if common_mapped is not None:
             return common_mapped
 
-        if cls.__normalize_overtime(status_text):
+        if cls.__normalize_overtime(match_stage):
             return QuarterGameStage.OVERTIME
 
-        direct = cls.__enum_from_value(QuarterGameStage, status_text)
+        direct = cls.__enum_from_value(QuarterGameStage, match_stage)
         if direct is not None:
             return direct
         return QuarterGameStage.UNKNOWN

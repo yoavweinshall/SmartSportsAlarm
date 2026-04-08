@@ -24,8 +24,8 @@ class Scores365MatchAdapter(BaseModel, BaseMatchAdapter):
     away_team: Scores365TeamAdapter | None = Field(default=None, validation_alias="awayCompetitor")
 
     start_time: datetime = Field(validation_alias="startTime")
-    status_group: int = Field(validation_alias="statusGroup")
-    status_text: str | None = Field(default=None, validation_alias="statusText")
+    stage_group: int = Field(validation_alias="statusGroup")
+    match_stage: str | None = Field(default=None, validation_alias="statusText")
     # 365scores provides a numeric `gameTime` and a string `gameTimeDisplay` (e.g. "02:25").
     game_time: str | None = Field(default=None, validation_alias="gameTimeDisplay")
 
@@ -48,5 +48,5 @@ class Scores365MatchAdapter(BaseModel, BaseMatchAdapter):
         return v
 
     def to_internal_match(self) -> BaseMatch:
-        self.status_text = Scores365StageAdapter.normalize(self.status_text, self.sport_id).value
+        self.match_stage = Scores365StageAdapter.normalize(self.match_stage, self.sport_id).value
         return MatchFactory.get_match_instance(self.model_dump(mode="json", exclude_none=True))
