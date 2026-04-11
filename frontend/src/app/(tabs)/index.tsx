@@ -1,14 +1,15 @@
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MatchCard } from '@/components/MatchCard';
+import { GroupedMatchesList } from '@/components/GroupedMatchesList';
 import { useMatches } from '@/hooks/useMatches';
 
 /**
  * Live scores tab — route file (no separate screens/ layer).
  */
 export default function LiveTabScreen() {
-  const { matches, isLoading, error } = useMatches({ is_live: true });
+  const { matches, isLoading, isFetchingPrevious, hasMorePrevious, error, loadNext, loadPrevious } =
+    useMatches({ is_live: true });
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-100 dark:bg-black" edges={['top']}>
@@ -23,13 +24,12 @@ export default function LiveTabScreen() {
           <ActivityIndicator />
         </View>
       ) : (
-        <FlatList
-          data={matches}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
-          renderItem={({ item }) => (
-            <MatchCard match={item} />
-          )}
+        <GroupedMatchesList
+          matches={matches}
+          isFetchingPrevious={isFetchingPrevious}
+          hasMorePrevious={hasMorePrevious}
+          loadNext={loadNext}
+          loadPrevious={loadPrevious}
         />
       )}
     </SafeAreaView>

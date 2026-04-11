@@ -7,30 +7,20 @@ interface MatchCardProps {
   match: EnrichedMatch;
 }
 
-const formatDateTime = (startTimeStr: string): string => {
+const formatTime = (startTimeStr: string): string => {
   if (!startTimeStr) return '';
   const dateObj = new Date(startTimeStr);
-  
-  const datePart = dateObj.toLocaleDateString(undefined, { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
-  });
-  const timePart = dateObj.toLocaleTimeString(undefined, { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-
-  return `${datePart} • ${timePart}`;
+  return dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 };
 
 export function MatchCard({ match }: MatchCardProps) {
   const { followedIds, toggleFollow } = useFollow();
-  const isFollowed = followedIds.has(match.id);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  
+  const isFollowed = followedIds.has(match.id);
 
-  const dateTimeString = useMemo(() => {
-    return formatDateTime(match.start_time);
+  const timeString = useMemo(() => {
+    return formatTime(match.start_time);
   }, [match.start_time]);
 
   const handleFollowPress = async () => {
@@ -43,7 +33,6 @@ export function MatchCard({ match }: MatchCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.competitionText}>{match.competition.name}</Text>
       </View>
 
       <View style={styles.scoreRow}>
@@ -64,7 +53,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
       <View style={styles.statusRow}>
         <Text style={styles.matchStatus}>
-          {match.status} {dateTimeString ? `• ${dateTimeString}` : ''}
+          {match.status} {timeString ? `• ${timeString}` : ''}
         </Text>
 
         <Pressable 
@@ -86,91 +75,18 @@ export function MatchCard({ match }: MatchCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2, 
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  header: {
-    marginBottom: 12,
-  },
-  competitionText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  teamInfo: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  teamNameText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  scoreboard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginHorizontal: 8,
-  },
-  scoreValue: {
-    fontSize: 18,
-    color: '#333',
-    fontWeight: '700',
-  },
-  scoreDivider: {
-    fontSize: 14,
-    color: '#ccc',
-    paddingHorizontal: 8,
-    fontWeight: '500',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  matchStatus: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-    flex: 1,
-    marginRight: 8,
-  },
-  followButton: {
-    backgroundColor: '#eee',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    minWidth: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  followedButton: {
-    backgroundColor: '#ccc',
-  },
-  followButtonText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-  },
-  followedButtonText: {
-    color: '#fff',
-  }
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  header: { marginBottom: 12 },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  teamInfo: { flex: 1, alignItems: 'center' },
+  teamNameText: { fontSize: 14, color: '#333', fontWeight: '500', textAlign: 'center' },
+  scoreboard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f5f5', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, marginHorizontal: 8 },
+  scoreValue: { fontSize: 18, color: '#333', fontWeight: '700' },
+  scoreDivider: { fontSize: 14, color: '#ccc', paddingHorizontal: 8, fontWeight: '500' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  matchStatus: { fontSize: 12, color: '#666', fontWeight: '500', flex: 1, marginRight: 8 },
+  followButton: { backgroundColor: '#eee', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 18, minWidth: 80, alignItems: 'center', justifyContent: 'center' },
+  followedButton: { backgroundColor: '#ccc' },
+  followButtonText: { fontSize: 14, color: '#333', fontWeight: '600' },
+  followedButtonText: { color: '#fff' }
 });
