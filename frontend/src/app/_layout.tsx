@@ -10,6 +10,7 @@ import '../../global.css';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
+import { FollowProvider } from '@/providers/FollowProvider';
 
 export {
   ErrorBoundary,
@@ -39,7 +40,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <FollowProvider>
+        <RootLayoutNav />
+      </FollowProvider>
     </AuthProvider>
   );
 }

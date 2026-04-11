@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+import datetime
 from typing import Any
 
 from .MatchProcessService import MatchProcessService
@@ -19,8 +19,8 @@ class DbMatchesService:
         Get all the future matches from the API and insert them into the database.
         """
         await CacheService.get_instance().ensure_cache_loaded()
-        start_date = datetime.today()
-        end_date = start_date + timedelta(days=30)
+        start_date = datetime.datetime.now(datetime.UTC)
+        end_date = start_date + datetime.timedelta(days=30)
         supported_competitions_id = [
             str(competition_id)
             for competition_id in CacheService.get_instance().supported_competition_ids.keys()
@@ -43,9 +43,9 @@ class DbMatchesService:
         """
         Delete Finished matches that were last updated 2 days ago from db
         """
-        target_delete_date = datetime.today() - timedelta(days=2)
-        await get_supabase().table("matches").delete("match_id").eq(
-            "match_stage", "Finished"
+        target_delete_date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=2)
+        await get_supabase().table("matches").delete().eq(
+            "stage_group", 4
         ).eq("updated_at", target_delete_date.isoformat()).execute()
 
     @staticmethod
@@ -76,8 +76,6 @@ class DbMatchesService:
         :param existing_match_data: The data about the match as stored in the database
         :return: if there is a difference between the data stored to the current one
         """
-        if not new_match.is_future_match():
-            return False
         if existing_match_data is None:
             return True
         return (
@@ -99,6 +97,7 @@ class DbMatchesService:
             for match in future_matches
             if cls._need_update(match, matches_in_db.get(match.external_api_id))
         ]
-        await get_supabase().table("matches").upsert(
-            matches_to_update, on_conflict="external_api_id"
-        ).execute()
+        if len(matches_to_update) > 0:
+            await get_supabase().table("matches").upsert(
+                matches_to_update, on_conflict="external_api_id"
+            ).execute()

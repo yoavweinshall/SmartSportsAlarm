@@ -71,6 +71,13 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="following"
+        options={{
+          title: 'Following',
+          tabBarIcon: ({ color }) => <TabBarIcon name="heart" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

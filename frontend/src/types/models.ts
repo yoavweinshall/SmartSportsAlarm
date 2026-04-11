@@ -56,4 +56,11 @@ export interface Match {
   updated_at: string | null;
   created_at: string | null;
   notified: boolean;
+  status: string | null;
+}
+
+export interface EnrichedMatch extends Match {
+  home_team: Pick<Team, 'id' | 'name' | 'short_name' | 'primary_color'>;
+  away_team: Pick<Team, 'id' | 'name' | 'short_name' | 'primary_color'>;
+  competition: Pick<Competition, 'id' | 'name' | 'color'>;
 }

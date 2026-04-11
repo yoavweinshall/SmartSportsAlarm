@@ -1,96 +1,176 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Pressable, Text, View } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import type { EnrichedMatch } from '@/types/models';
+import { useMemo, useState } from 'react';
+import { useFollow } from '@/providers/FollowProvider';
 
-import type { Match, Team } from '@/types/models';
+interface MatchCardProps {
+  match: EnrichedMatch;
+}
 
-type Props = {
-  match: Match;
-  homeTeam: Team | undefined;
-  awayTeam: Team | undefined;
-  competitionLabel: string | null;
-  following: boolean;
-  onToggleFollow: () => void;
+const formatDateTime = (startTimeStr: string): string => {
+  if (!startTimeStr) return '';
+  const dateObj = new Date(startTimeStr);
+  
+  const datePart = dateObj.toLocaleDateString(undefined, { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+  const timePart = dateObj.toLocaleTimeString(undefined, { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+
+  return `${datePart} • ${timePart}`;
 };
 
-export function MatchCard({
-  match,
-  homeTeam,
-  awayTeam,
-  competitionLabel,
-  following,
-  onToggleFollow,
-}: Props) {
-  const climax = match.notified;
+export function MatchCard({ match }: MatchCardProps) {
+  const { followedIds, toggleFollow } = useFollow();
+  const isFollowed = followedIds.has(match.id);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  const dateTimeString = useMemo(() => {
+    return formatDateTime(match.start_time);
+  }, [match.start_time]);
+
+  const handleFollowPress = async () => {
+    if (isActionLoading) return;
+    setIsActionLoading(true);
+    await toggleFollow(match.id);
+    setIsActionLoading(false);
+  };
 
   return (
-    <View
-      className={`mb-3 rounded-2xl border-2 p-4 ${
-        climax
-          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/40 dark:border-red-400 dark:bg-red-950/40'
-          : 'border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900'
-      }`}>
-      {climax && (
-        <View className="mb-2 flex-row items-center gap-2">
-          <FontAwesome name="bell" size={16} color="#dc2626" />
-          <Text className="text-sm font-bold uppercase tracking-wide text-red-600 dark:text-red-400">
-            Climax — Smart alarm
-          </Text>
-        </View>
-      )}
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text style={styles.competitionText}>{match.competition.name}</Text>
+      </View>
 
-      {competitionLabel ? (
-        <Text className="mb-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-          {competitionLabel}
-        </Text>
-      ) : null}
-
-      <View className="flex-row items-center justify-between">
-        <View className="flex-1 flex-row items-center justify-between pr-2">
-          <Text
-            className="flex-1 text-base font-semibold text-neutral-900 dark:text-neutral-100"
-            numberOfLines={1}>
-            {homeTeam?.name ?? `Team #${match.home_team_id}`}
-          </Text>
-          <Text className="ml-2 text-xl font-bold text-neutral-900 dark:text-white">
-            {match.home_score}
-          </Text>
+      <View style={styles.scoreRow}>
+        <View style={styles.teamInfo}>
+          <Text style={styles.teamNameText} numberOfLines={1}>{match.home_team.name}</Text>
         </View>
-        <Text className="mx-2 text-neutral-400">—</Text>
-        <View className="flex-1 flex-row items-center justify-between pl-2">
-          <Text
-            className="flex-1 text-right text-base font-semibold text-neutral-900 dark:text-neutral-100"
-            numberOfLines={1}>
-            {awayTeam?.name ?? `Team #${match.away_team_id}`}
-          </Text>
-          <Text className="ml-2 text-xl font-bold text-neutral-900 dark:text-white">
-            {match.away_score}
-          </Text>
+        
+        <View style={styles.scoreboard}>
+          <Text style={styles.scoreValue}>{match.home_score}</Text>
+          <Text style={styles.scoreDivider}>—</Text>
+          <Text style={styles.scoreValue}>{match.away_score}</Text>
+        </View>
+
+        <View style={styles.teamInfo}>
+          <Text style={styles.teamNameText} numberOfLines={1}>{match.away_team.name}</Text>
         </View>
       </View>
 
-      <View className="mt-3 flex-row items-center justify-between">
-        <View>
-          <Text className="text-sm text-neutral-600 dark:text-neutral-300">
-            {match.match_stage ?? 'Live'} · {match.game_time ?? '—'}
-          </Text>
-        </View>
-        <Pressable
-          onPress={onToggleFollow}
-          className={`rounded-full px-4 py-2 ${
-            following
-              ? 'bg-blue-100 dark:bg-neutral-700'
-              : 'bg-neutral-200 dark:bg-neutral-600'
-          }`}
-          accessibilityRole="button"
-          accessibilityLabel={following ? 'Unfollow match' : 'Follow match'}>
-          <Text
-            className={`text-sm font-semibold ${
-              following ? 'text-blue-700 dark:text-blue-300' : 'text-neutral-800 dark:text-neutral-100'
-            }`}>
-            {following ? 'Following' : 'Follow'}
-          </Text>
+      <View style={styles.statusRow}>
+        <Text style={styles.matchStatus}>
+          {match.status} {dateTimeString ? `• ${dateTimeString}` : ''}
+        </Text>
+
+        <Pressable 
+          style={[styles.followButton, isFollowed && styles.followedButton]}
+          onPress={handleFollowPress}
+          disabled={isActionLoading}
+        >
+          {isActionLoading ? (
+            <ActivityIndicator size="small" color={isFollowed ? "#fff" : "#333"} />
+          ) : (
+            <Text style={[styles.followButtonText, isFollowed && styles.followedButtonText]}>
+              {isFollowed ? 'Following' : 'Follow'}
+            </Text>
+          )}
         </Pressable>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2, 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  header: {
+    marginBottom: 12,
+  },
+  competitionText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  teamInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  teamNameText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  scoreboard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginHorizontal: 8,
+  },
+  scoreValue: {
+    fontSize: 18,
+    color: '#333',
+    fontWeight: '700',
+  },
+  scoreDivider: {
+    fontSize: 14,
+    color: '#ccc',
+    paddingHorizontal: 8,
+    fontWeight: '500',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  matchStatus: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    flex: 1,
+    marginRight: 8,
+  },
+  followButton: {
+    backgroundColor: '#eee',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  followedButton: {
+    backgroundColor: '#ccc',
+  },
+  followButtonText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+  followedButtonText: {
+    color: '#fff',
+  }
+});

@@ -1,7 +1,6 @@
 from enum import Enum
-from typing import TypeVar, Union, Dict
+from typing import TypeVar
 
-from collections.abc import Callable
 
 from .baseStageAdapter import BaseStageAdapter
 from ...core.matches.utils.stages import HalfGameStage, QuarterGameStage, CommonMatchStage

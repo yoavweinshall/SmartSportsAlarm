@@ -5,9 +5,11 @@ import sys
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.services import DbMatchesService
 from .database import init_supabase
+from .routers import match_router
 from .services.LiveMatchSyncService import LiveMatchSyncService
 
 # Setup logger for background task visibility
@@ -74,6 +76,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SmartSportsAlarm API", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(match_router)
 
 
 @app.get("/health")

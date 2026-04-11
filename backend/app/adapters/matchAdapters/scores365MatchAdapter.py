@@ -37,8 +37,8 @@ class Scores365MatchAdapter(BaseModel, BaseMatchAdapter):
     updated_at: datetime | None = None
     created_at: datetime | None = None
 
-    @classmethod
     @field_validator("home_score", "away_score", mode="before")
+    @classmethod
     def _score_minus_one_to_zero(cls, v: Any) -> Any:
         # 365scores sometimes uses -1 / -1.0 when the score is unknown.
         if v is None:
