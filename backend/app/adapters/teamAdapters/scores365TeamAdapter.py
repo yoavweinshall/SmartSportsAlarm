@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .baseTeamAdapter import BaseTeamAdapter
 from ...core.teams import BaseTeam
@@ -29,6 +29,15 @@ class Scores365TeamAdapter(BaseModel, BaseTeamAdapter):
 
     metadata: dict[str, Any] = Field(default_factory=dict, validation_alias="metadata")
     created_at: datetime | None = None
+
+    @field_validator("sport_id", mode="before")
+    @classmethod
+    def _api_to_internal_sport_id(cls, v: Any) -> Any:
+        return {
+            1: 2,
+            2: 1,
+            6: 3
+        }[v]
 
     def _to_internal_team(self) -> BaseTeam:
         return BaseTeam.model_validate(self.model_dump(mode="json", exclude_none=True))

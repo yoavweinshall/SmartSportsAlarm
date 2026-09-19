@@ -4,7 +4,6 @@ Util module to handle game stages
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from enum import Enum
 
 
@@ -26,29 +25,25 @@ UNPLAYED_STAGES = [
 ]
 
 
-class BaseStage(ABC):
+class BaseStage:
     """
     Abstract base class for stages of the game
     """
 
-    @abstractmethod
     def is_climax_period(self) -> bool:
         """
         return if this stage is final period of the game
         """
+        raise NotImplementedError
 
-    @abstractmethod
     def stages_to_go(self) -> int:
         """
         return how many stages to go after this one
         """
-
-    @property
-    @abstractmethod
-    def value(self) -> str: ...
+        raise NotImplementedError
 
 
-class QuarterGameStage(str, Enum, BaseStage):
+class QuarterGameStage(BaseStage, str, Enum):
     # Common stages (must match CommonMatchStage member names)
     SCHEDULED = "Scheduled"
     DELAYED = "Delayed"
@@ -76,10 +71,11 @@ class QuarterGameStage(str, Enum, BaseStage):
             QuarterGameStage.HALFTIME: 2,
             QuarterGameStage.Q3: 1,
             QuarterGameStage.Q4: 0,
+            QuarterGameStage.OVERTIME: 0,
         }[self]
 
 
-class HalfGameStage(str, Enum, BaseStage):
+class HalfGameStage(BaseStage, str, Enum):
     # Common stages (must match CommonMatchStage member names)
     SCHEDULED = "Scheduled"
     DELAYED = "Delayed"

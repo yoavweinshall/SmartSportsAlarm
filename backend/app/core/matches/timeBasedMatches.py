@@ -1,7 +1,7 @@
 from abc import ABC
 
-from backend.app.core.matches import BaseMatch
-from backend.app.core.matches.utils.stages import UNPLAYED_STAGES, CommonMatchStage
+from backend.app.core.matches.baseMatch import BaseMatch
+from backend.app.core.matches.utils.stages import UNPLAYED_STAGES, CommonMatchStage, QuarterGameStage
 from backend.app.core.matches.utils.time_handle import parse_mmss_to_seconds
 
 
@@ -15,7 +15,8 @@ class TimeBasedMatches(BaseMatch, ABC):
         - Returns `0` for FINISHED.
         - Otherwise parses `mm:ss` from `game_time` (mapped from 365scores `gameTimeDisplay`).
         """
-
+        if self.stage == QuarterGameStage.OVERTIME:
+            pass
         if self.stage.value in UNPLAYED_STAGES:
             return None
         if self.stage.value == CommonMatchStage.FINISHED.value:

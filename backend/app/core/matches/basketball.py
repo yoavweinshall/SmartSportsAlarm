@@ -1,5 +1,5 @@
-from .timeBasedMatches import TimeBasedMatches
-from .utils.stages import HalfGameStage, QuarterGameStage, BaseStage
+from backend.app.core.matches.timeBasedMatches import TimeBasedMatches
+from backend.app.core.matches.utils.stages import HalfGameStage, QuarterGameStage, BaseStage
 
 
 class BasketballMatch(TimeBasedMatches):

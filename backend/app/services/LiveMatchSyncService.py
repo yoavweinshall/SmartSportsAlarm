@@ -1,11 +1,11 @@
 import logging
 from typing import Any
 
-from .CacheService import CacheService
-from .MatchProcessService import MatchProcessService
-from ..core.matches import BaseMatch
-from ..database import get_supabase
-from .ScoresApiService import ScoresApiService
+from backend.app.services.CacheService import CacheService
+from backend.app.services.MatchProcessService import MatchProcessService
+from backend.app.core.matches import BaseMatch
+from backend.app.database import get_supabase
+from backend.app.services.ScoresApiService import ScoresApiService
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +79,12 @@ class LiveMatchSyncService:
                 logger.info("No live scores found")
                 return
 
+            # Batch sync teams and their competition links
+            await CacheService.get_instance().batch_sync_teams(supported_games)
+            await CacheService.get_instance().batch_sync_teams_competitions_links(
+                supported_games
+            )
+
             # Optimization: use only supported games for notified states
             notified_map = await cls._get_db_notified_states(supported_games)
 
@@ -86,7 +92,7 @@ class LiveMatchSyncService:
             await get_supabase().table("matches").upsert(processed_games, on_conflict="external_api_id").execute()
 
         except Exception as e:
-            logger.error(f"Sync service error: {e}")
+            logger.error(f"Sync service error: {str(e)}")
 
     @classmethod
     def _handle_new_climax(cls, match):

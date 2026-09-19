@@ -2,11 +2,11 @@ import logging
 import datetime
 from typing import Any
 
-from .MatchProcessService import MatchProcessService
-from ..core.matches import BaseMatch
-from ..database import get_supabase
-from .ScoresApiService import ScoresApiService
-from .CacheService import CacheService
+from backend.app.services.MatchProcessService import MatchProcessService
+from backend.app.core.matches import BaseMatch
+from backend.app.database import get_supabase
+from backend.app.services.ScoresApiService import ScoresApiService
+from backend.app.services.CacheService import CacheService
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class DbMatchesService:
         """
         await CacheService.get_instance().ensure_cache_loaded()
         start_date = datetime.datetime.now(datetime.UTC)
-        end_date = start_date + datetime.timedelta(days=30)
+        end_date = start_date + datetime.timedelta(days=7)
         supported_competitions_id = [
             str(competition_id)
             for competition_id in CacheService.get_instance().supported_competition_ids.keys()
@@ -78,7 +78,7 @@ class DbMatchesService:
         """
         if existing_match_data is None:
             return True
-        return (
+        return not (
                 new_match.match_stage == existing_match_data["match_stage"]
                 and new_match.start_time == existing_match_data["start_time"]
         )

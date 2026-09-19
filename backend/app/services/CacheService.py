@@ -1,10 +1,10 @@
 import asyncio
 import logging
 
-from .DbApiMapService import DbApiMapService
-from ..core.matches import BaseMatch
-from ..core.teams import BaseTeam
-from ..database import get_supabase
+from backend.app.services.DbApiMapService import DbApiMapService
+from backend.app.core.matches import BaseMatch
+from backend.app.core.teams import BaseTeam
+from backend.app.database import get_supabase
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +98,7 @@ class CacheService:
         Extracts new links, performing batch upserts.
         """
         links_to_add = []
+        added_links = {}
         for game in games_data:
             comp_api_id = game.competition_id
             internal_competition_id = self.supported_competition_ids.get(comp_api_id)
@@ -106,9 +107,19 @@ class CacheService:
                     continue
                 api_team_id = side.external_api_id
                 internal_team_id = self.api_to_internal_team_id.get(api_team_id)
-
-                if internal_team_id and (internal_team_id, internal_competition_id) not in self.known_team_comp_links:
+                if (
+                    internal_team_id
+                    and (internal_team_id, internal_competition_id) not in self.known_team_comp_links
+                    and (
+                        internal_team_id not in added_links
+                        or internal_competition_id not in added_links[internal_team_id]
+                    )
+                ):
                     links_to_add.append({"team_id": internal_team_id, "competition_id": internal_competition_id})
+                    if internal_team_id not in added_links:
+                        added_links[internal_team_id]: set[int] = {internal_competition_id}
+                    else:
+                        added_links[internal_team_id].add(internal_competition_id)
 
         if links_to_add:
             res = (

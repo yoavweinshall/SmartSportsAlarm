@@ -47,6 +47,15 @@ class Scores365MatchAdapter(BaseModel, BaseMatchAdapter):
             return 0
         return v
 
+    @field_validator("sport_id", mode="before")
+    @classmethod
+    def _api_to_internal_sport_id(cls, v: Any) -> Any:
+        return {
+            1: 2,
+            2: 1,
+            6: 3
+        }[v]
+
     def to_internal_match(self) -> BaseMatch:
         self.match_stage = Scores365StageAdapter.normalize(self.match_stage, self.sport_id).value
         return MatchFactory.get_match_instance(self.model_dump(mode="json", exclude_none=True))

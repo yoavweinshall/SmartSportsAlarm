@@ -7,10 +7,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.services import DbMatchesService
-from .database import init_supabase
-from .routers import match_router
-from .services.LiveMatchSyncService import LiveMatchSyncService
+from backend.app.services import DbMatchesService, LiveMatchSyncService
+from backend.app.database import init_supabase
+from backend.app.routers import match_router
 
 # Setup logger for background task visibility
 logging.basicConfig(

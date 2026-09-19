@@ -43,15 +43,6 @@ class BaseMatch(BaseModel, ABC):
     updated_at: datetime | None = None
     created_at: datetime | None = None
 
-    @model_validator(mode="after")
-    def _validate_stage(self):
-        # If we have a match_stage, force it to be representable as a quarter-based stage.
-        if self.match_stage and self.stage.value == "Unknown":
-            raise ValueError(
-                f"Unrecognized quarter-based statusText for {self.__class__.__name__}: {self.match_stage!r}"
-            )
-        return self
-
     @property
     @abstractmethod
     def _stage_time(self): ...

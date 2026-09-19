@@ -27,6 +27,7 @@ class BaseStageAdapter:
     @classmethod
     def normalize(cls, status: str, sport_id: int):
         id_to_normalize_func: Dict[int, Callable] = {
-            2: cls._normalize_basketball_stage,
+            1: cls._normalize_basketball_stage,
+            3: cls.to_internal_quarter_stage,
         }
         return id_to_normalize_func[sport_id](status)
