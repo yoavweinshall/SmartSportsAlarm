@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend.app.core.matches.utils.stages import BaseStage
 from backend.app.core.teams import BaseTeam
 
 
@@ -51,8 +52,27 @@ class BaseMatch(BaseModel, ABC):
             )
         return self
 
+    @property
+    @abstractmethod
+    def _stage_time(self): ...
+
+    @property
+    @abstractmethod
+    def _climax_max_score_diff(self) -> int: ...
+
+    @property
+    @abstractmethod
+    def _climax_max_time_seconds(self) -> int: ...
+
+    @property
+    @abstractmethod
+    def stage(self) -> BaseStage: ...
+
     @abstractmethod
     def is_climax(self) -> bool: ...
+
+    def _is_climax_time(self) -> bool:
+        return self.stage.is_climax_period()
 
     def is_future_match(self) -> bool:
         return self.stage_group == 2
