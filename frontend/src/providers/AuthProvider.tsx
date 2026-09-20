@@ -8,6 +8,7 @@ type AuthContextValue = {
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -23,7 +24,7 @@ async function loadProfile(userId: string): Promise<Profile | null> {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.warn('[AuthProvider] Failed to load profile:', error.message);
@@ -59,8 +60,9 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
       });
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (cancelled) return;
+      if (event === 'INITIAL_SESSION') return;
       sync(nextSession ?? null);
     });
 
@@ -70,8 +72,13 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
     };
   }, []);
 
+  async function signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  }
+
   const value = useMemo<AuthContextValue>(
-    () => ({ session, profile, isLoading }),
+    () => ({ session, profile, isLoading, signOut }),
     [session, profile, isLoading]
   );
 

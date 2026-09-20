@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,16 +13,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { supabase } from '@/lib/supabase';
-
 export default function SignupScreen() {
-  const [email, setEmail] = useState('');
+  const router = useRouter();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   function validate(): boolean {
-    if (!email.trim()) {
-      Alert.alert('Missing field', 'Please enter your email address.');
+    if (!username.trim()) {
+      Alert.alert('Missing field', 'Please choose a username.');
       return false;
     }
     if (password.length < 6) {
@@ -36,18 +35,29 @@ export default function SignupScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-      });
-      if (error) {
-        Alert.alert('Sign-up failed', error.message);
+      const normalizedUsername = username.trim();
+
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+      if (!apiUrl) {
+        Alert.alert('Sign-up failed', 'The user service is not configured.');
         return;
       }
-      Alert.alert(
-        'Check your inbox',
-        'If email confirmation is enabled, please verify your address, then sign in.'
-      );
+
+      const response = await fetch(`${apiUrl}/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: normalizedUsername, password }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { detail?: string } | null;
+        Alert.alert('Sign-up failed', body?.detail ?? 'Could not create the account.');
+        return;
+      }
+
+      Alert.alert('Account created', 'You can now sign in.', [
+        { text: 'Sign in', onPress: () => router.replace('/login') },
+      ]);
     } catch {
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
@@ -74,16 +84,15 @@ export default function SignupScreen() {
           <View className="mt-8 gap-4">
             <View>
               <Text className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Email
+                Username
               </Text>
               <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="your_username"
                 placeholderTextColor="#9ca3af"
-                keyboardType="email-address"
                 autoCapitalize="none"
-                autoComplete="email"
+                autoCorrect={false}
                 editable={!loading}
                 className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-white"
               />

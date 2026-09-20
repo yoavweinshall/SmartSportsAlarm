@@ -17,7 +17,7 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, signOut } = useAuth();
 
   // Call ALL hooks unconditionally before any early return.
   // useClientOnlyValue uses useState + useEffect internally (native version),
@@ -36,7 +36,7 @@ export default function TabLayout() {
   });
   // #endregion
 
-  if (isLoading) {
+  if (isLoading || !session) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
@@ -49,13 +49,8 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Live',
-          tabBarIcon: ({ color }) => <TabBarIcon name="bolt" color={color} />,
-          headerRight: () => (
+        headerRight: () => (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginRight: 15 }}>
             <Link href="/modal" asChild>
               <Pressable>
                 {({ pressed }) => (
@@ -63,12 +58,29 @@ export default function TabLayout() {
                     name="info-circle"
                     size={25}
                     color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                    style={{ opacity: pressed ? 0.5 : 1 }}
                   />
                 )}
               </Pressable>
             </Link>
-          ),
+            <Pressable onPress={signOut} accessibilityLabel="Log out and go to login">
+              {({ pressed }) => (
+                <FontAwesome
+                  name="sign-in"
+                  size={25}
+                  color={Colors[colorScheme ?? 'light'].text}
+                  style={{ opacity: pressed ? 0.5 : 1 }}
+                />
+              )}
+            </Pressable>
+          </View>
+        ),
+      }}>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Live',
+          tabBarIcon: ({ color }) => <TabBarIcon name="bolt" color={color} />,
         }}
       />
       <Tabs.Screen

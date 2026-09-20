@@ -13,16 +13,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { supabase } from '@/lib/supabase';
+import { authIdentifier, supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   function validate(): boolean {
-    if (!email.trim()) {
-      Alert.alert('Missing field', 'Please enter your email address.');
+    if (!username.trim()) {
+      Alert.alert('Missing field', 'Please enter your username.');
       return false;
     }
     if (password.length < 6) {
@@ -36,11 +36,33 @@ export default function LoginScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: authIdentifier(username),
         password,
       });
-      if (error) Alert.alert('Sign-in failed', error.message);
+      if (error) {
+        Alert.alert('Sign-in failed', error.message);
+        return;
+      }
+
+      if (!data.user) {
+        Alert.alert('Sign-in failed', 'The account could not be loaded.');
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        await supabase.auth.signOut();
+        Alert.alert(
+          'Sign-in failed',
+          profileError?.message ?? 'No profile exists for this account.'
+        );
+      }
     } catch {
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
@@ -67,16 +89,16 @@ export default function LoginScreen() {
           <View className="mt-8 gap-4">
             <View>
               <Text className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Email
+                Username
               </Text>
               <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="your_username"
                 placeholderTextColor="#9ca3af"
-                keyboardType="email-address"
                 autoCapitalize="none"
-                autoComplete="email"
+                autoCorrect={false}
+                autoComplete="username"
                 editable={!loading}
                 className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-white"
               />
