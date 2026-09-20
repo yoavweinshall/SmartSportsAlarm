@@ -24,6 +24,7 @@ type MatchesState = {
 
 // Must match the `limit` default on the backend so hasMore inference is correct
 const PAGE_SIZE = 50;
+const REFRESH_INTERVAL_MS = 60_000;
 
 export function useMatches(params: FetchMatchesParams = {}): MatchesState {
   const { session } = useAuth();
@@ -132,6 +133,38 @@ export function useMatches(params: FetchMatchesParams = {}): MatchesState {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.access_token, paramsKey]);
+
+  // Refresh game data in the background without showing the initial-load state again.
+  useEffect(() => {
+    if (!session?.access_token) return;
+
+    let cancelled = false;
+
+    const refresh = async () => {
+      try {
+        const data = await fetchPage();
+        if (cancelled) return;
+
+        setMatches((currentMatches) => {
+          if (JSON.stringify(currentMatches) === JSON.stringify(data)) {
+            return currentMatches;
+          }
+
+          return data;
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Unknown error');
+        }
+      }
+    };
+
+    const intervalId = setInterval(refresh, REFRESH_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [session?.access_token, fetchPage]);
 
   /**
    * Loads the next page of upcoming matches and appends them.

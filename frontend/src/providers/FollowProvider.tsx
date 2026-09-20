@@ -30,6 +30,12 @@ export function FollowProvider({ children }: React.PropsWithChildren) {
     let cancelled = false;
     const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
+    if (!baseUrl) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     async function fetchFollowed() {
       try {
         const res = await fetch(`${baseUrl}/matches/?followed_only=true`, {
@@ -76,6 +82,9 @@ export function FollowProvider({ children }: React.PropsWithChildren) {
 
       try {
         const baseUrl = process.env.EXPO_PUBLIC_API_URL;
+        if (!baseUrl) {
+          throw new Error('Missing EXPO_PUBLIC_API_URL');
+        }
         const res = await fetch(`${baseUrl}/matches/${matchId}/follow`, {
           method: wasFollowed ? 'DELETE' : 'POST',
           headers: {

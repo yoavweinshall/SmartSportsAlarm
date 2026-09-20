@@ -52,9 +52,16 @@ export function MatchCard({ match }: MatchCardProps) {
       </View>
 
       <View style={styles.statusRow}>
-        <Text style={styles.matchStatus}>
-          {match.status} {timeString ? `• ${timeString}` : ''}
-        </Text>
+        <View style={styles.matchDetails}>
+          <Text style={styles.matchStatus}>
+            {match.status} {timeString ? `• ${timeString}` : ''}
+          </Text>
+          {match.match_stage && match.game_time ? (
+            <Text style={styles.matchStageTime}>
+              {match.match_stage} {match.game_time}
+            </Text>
+          ) : null}
+        </View>
 
         <Pressable 
           style={[styles.followButton, isFollowed && styles.followedButton]}
@@ -83,10 +90,12 @@ const styles = StyleSheet.create({
   scoreboard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f5f5', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, marginHorizontal: 8 },
   scoreValue: { fontSize: 18, color: '#333', fontWeight: '700' },
   scoreDivider: { fontSize: 14, color: '#ccc', paddingHorizontal: 8, fontWeight: '500' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  matchStatus: { fontSize: 12, color: '#666', fontWeight: '500', flex: 1, marginRight: 8 },
-  followButton: { backgroundColor: '#eee', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 18, minWidth: 80, alignItems: 'center', justifyContent: 'center' },
+  statusRow: { position: 'relative', minHeight: 62, justifyContent: 'center' },
+  matchDetails: { alignItems: 'center', paddingHorizontal: 72 },
+  matchStatus: { fontSize: 12, color: '#666', fontWeight: '500', textAlign: 'center' },
+  matchStageTime: { fontSize: 20, color: '#222', fontWeight: '700', textAlign: 'center', marginTop: 4 },
+  followButton: { position: 'absolute', right: 0, top: '50%', transform: [{ translateY: -16 }], backgroundColor: '#eee', borderRadius: 14, paddingVertical: 5, paddingHorizontal: 10, minWidth: 58, alignItems: 'center', justifyContent: 'center' },
   followedButton: { backgroundColor: '#ccc' },
-  followButtonText: { fontSize: 14, color: '#333', fontWeight: '600' },
+  followButtonText: { fontSize: 11, color: '#333', fontWeight: '600' },
   followedButtonText: { color: '#fff' }
 });

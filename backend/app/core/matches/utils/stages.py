@@ -14,6 +14,8 @@ class CommonMatchStage(str, Enum):
     CANCELLED = "Cancelled"
     FINISHED = "Finished"
     UNKNOWN = "Unknown"
+    SUSPENDED = "Suspended"
+    FINAL_OT = "Final/OT"
 
 
 UNPLAYED_STAGES = [
@@ -22,6 +24,7 @@ UNPLAYED_STAGES = [
     CommonMatchStage.POSTPONED.value,
     CommonMatchStage.CANCELLED.value,
     CommonMatchStage.UNKNOWN.value,
+    CommonMatchStage.FINAL_OT
 ]
 
 
@@ -50,6 +53,7 @@ class QuarterGameStage(BaseStage, str, Enum):
     POSTPONED = "Postponed"
     CANCELLED = "Cancelled"
     FINISHED = "Finished"
+    SUSPENDED = "Suspended"
 
     # Quarter-based game stages (basketball, american football, etc.)
     Q1 = "Q1"
@@ -58,6 +62,7 @@ class QuarterGameStage(BaseStage, str, Enum):
     Q3 = "Q3"
     Q4 = "Q4"
     OVERTIME = "OT"  # canonical value; OT1/OT2/... normalize here
+    FINAL_OT = "Final/OT"
 
     UNKNOWN = "Unknown"
 
@@ -82,12 +87,14 @@ class HalfGameStage(BaseStage, str, Enum):
     POSTPONED = "Postponed"
     CANCELLED = "Cancelled"
     FINISHED = "Finished"
+    SUSPENDED = "Suspended"
 
     # Half-based game stages (NCAA basketball, some competitions)
     FIRST_HALF = "1st Half"
     HALF_TIME = "Halftime"
     SECOND_HALF = "2nd Half"
     OVERTIME = "OT"  # canonical value; OT1/OT2/... normalize here
+    FINAL_OT = "Final/OT"
 
     UNKNOWN = "Unknown"
 

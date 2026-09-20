@@ -1,4 +1,4 @@
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,8 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { signUpWithUsername, supabase } from '@/lib/supabase';
+
 export default function SignupScreen() {
-  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,6 +23,10 @@ export default function SignupScreen() {
   function validate(): boolean {
     if (!username.trim()) {
       Alert.alert('Missing field', 'Please choose a username.');
+      return false;
+    }
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())) {
+      Alert.alert('Invalid username', 'Use 3-30 letters, numbers, or underscores.');
       return false;
     }
     if (password.length < 6) {
@@ -35,29 +40,27 @@ export default function SignupScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const normalizedUsername = username.trim();
-
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-      if (!apiUrl) {
-        Alert.alert('Sign-up failed', 'The user service is not configured.');
+      const { data, error } = await signUpWithUsername(username, password);
+      if (error) {
+        Alert.alert('Sign-up failed', error.message);
+        return;
+      }
+      if (!data.user || !data.session) {
+        Alert.alert('Sign-up failed', 'The account could not be created.');
         return;
       }
 
-      const response = await fetch(`${apiUrl}/users/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: normalizedUsername, password }),
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        username: username.trim(),
       });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { detail?: string } | null;
-        Alert.alert('Sign-up failed', body?.detail ?? 'Could not create the account.');
+      if (profileError) {
+        await supabase.auth.signOut();
+        Alert.alert('Sign-up failed', profileError.message);
         return;
       }
 
-      Alert.alert('Account created', 'You can now sign in.', [
-        { text: 'Sign in', onPress: () => router.replace('/login') },
-      ]);
+      Alert.alert('Account created', 'Your account is ready.');
     } catch {
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
@@ -93,6 +96,7 @@ export default function SignupScreen() {
                 placeholderTextColor="#9ca3af"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="username"
                 editable={!loading}
                 className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-white"
               />

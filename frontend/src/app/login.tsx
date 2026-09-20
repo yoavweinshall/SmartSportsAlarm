@@ -36,33 +36,11 @@ export default function LoginScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: authIdentifier(username),
         password,
       });
-      if (error) {
-        Alert.alert('Sign-in failed', error.message);
-        return;
-      }
-
-      if (!data.user) {
-        Alert.alert('Sign-in failed', 'The account could not be loaded.');
-        return;
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', data.user.id)
-        .maybeSingle();
-
-      if (profileError || !profile) {
-        await supabase.auth.signOut();
-        Alert.alert(
-          'Sign-in failed',
-          profileError?.message ?? 'No profile exists for this account.'
-        );
-      }
+      if (error) Alert.alert('Sign-in failed', error.message);
     } catch {
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {

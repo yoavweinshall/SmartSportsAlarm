@@ -88,7 +88,10 @@ async def get_matches(
                 return {"matches": []}
             query = query.in_("id", followed_ids)
 
-        if direction == "backward":
+        if is_live:
+            # Live games can start before midnight and remain in progress after the date changes.
+            query = query.order("start_time", desc=False).limit(limit)
+        elif direction == "backward":
             # Fetch everything strictly before the cursor in DESC order so LIMIT cuts the closest matches
             query = query.lt("start_time", cursor_str).order("start_time", desc=True).limit(limit)
         else:
