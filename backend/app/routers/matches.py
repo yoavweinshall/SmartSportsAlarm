@@ -8,11 +8,16 @@ from typing import Optional, Any
 from ..database import get_supabase
 
 logger = logging.getLogger(__name__)
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 match_router = APIRouter(prefix="/matches", tags=["matches"])
 
 
-async def get_current_user_id(res: HTTPAuthorizationCredentials = Depends(security)) -> Optional[str]:
+async def get_current_user_id(
+    res: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> Optional[str]:
+    if res is None:
+        return None
+
     token = res.credentials
     try:
         # Send the token to Supabase for verification
@@ -99,28 +104,34 @@ async def get_matches(
 
         return {"matches": matches}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"fetching matches: {str(e)}")
         raise HTTPException(status_code=500, detail="An error occurred while fetching matches")
 
 
 @match_router.post("/{match_id}/follow")
-async def change_follow_status(match_id: int, user_id: Optional[int] = Depends(get_current_user_id)) -> None:
+async def change_follow_status(match_id: int, user_id: Optional[str] = Depends(get_current_user_id)) -> None:
     """
     Add a match to the matches user is following
     :param match_id: Match ID
     :param user_id: User ID
     """
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
     await get_supabase().table("user_followed_matches").upsert({"user_id": user_id, "match_id": match_id}).execute()
 
 
 @match_router.delete("/{match_id}/follow")
-async def change_follow_status(match_id: int, user_id: Optional[int] = Depends(get_current_user_id)) -> None:
+async def change_follow_status(match_id: int, user_id: Optional[str] = Depends(get_current_user_id)) -> None:
     """
     Remove a match from the matches user is following
     :param match_id: Match ID
     :param user_id: User ID
     """
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
     await get_supabase().table("user_followed_matches").delete().eq("user_id", user_id).eq(
         "match_id", match_id
     ).execute()
