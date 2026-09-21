@@ -19,9 +19,11 @@ export function MatchCard({ match }: MatchCardProps) {
   
   const isFollowed = followedIds.has(match.id);
 
-  const timeString = useMemo(() => {
+  const startTimeString = useMemo(() => {
     return formatTime(match.start_time);
   }, [match.start_time]);
+
+  const isFinished = match.match_stage?.toLowerCase() === 'finished';
 
   const handleFollowPress = async () => {
     if (isActionLoading) return;
@@ -37,7 +39,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
       <View style={styles.scoreRow}>
         <View style={styles.teamInfo}>
-          <Text style={styles.teamNameText} numberOfLines={1}>{match.home_team.name}</Text>
+          <Text style={styles.teamNameText} numberOfLines={1}>{match.home_team?.name ?? 'Home team'}</Text>
         </View>
         
         <View style={styles.scoreboard}>
@@ -47,20 +49,21 @@ export function MatchCard({ match }: MatchCardProps) {
         </View>
 
         <View style={styles.teamInfo}>
-          <Text style={styles.teamNameText} numberOfLines={1}>{match.away_team.name}</Text>
+          <Text style={styles.teamNameText} numberOfLines={1}>{match.away_team?.name ?? 'Away team'}</Text>
         </View>
       </View>
 
       <View style={styles.statusRow}>
+        <View style={styles.startTime}>
+          <Text style={styles.startTimeText}>{startTimeString}</Text>
+        </View>
+
         <View style={styles.matchDetails}>
-          <Text style={styles.matchStatus}>
-            {match.status} {timeString ? `• ${timeString}` : ''}
-          </Text>
-          {match.match_stage && match.game_time ? (
+          {match.match_stage ? (
             <Text style={styles.matchStageTime}>
-              {match.match_stage} {match.game_time}
+              {match.match_stage}{!isFinished && match.game_time ? ` ${match.game_time}` : ''}
             </Text>
-          ) : null}
+          ) : match.status ? <Text style={styles.matchStatus}>{match.status}</Text> : null}
         </View>
 
         <Pressable 
@@ -91,6 +94,8 @@ const styles = StyleSheet.create({
   scoreValue: { fontSize: 18, color: '#333', fontWeight: '700' },
   scoreDivider: { fontSize: 14, color: '#ccc', paddingHorizontal: 8, fontWeight: '500' },
   statusRow: { position: 'relative', minHeight: 62, justifyContent: 'center' },
+  startTime: { position: 'absolute', left: 0, top: 0, bottom: 0, justifyContent: 'center', width: 64 },
+  startTimeText: { fontSize: 13, color: '#555', fontWeight: '600' },
   matchDetails: { alignItems: 'center', paddingHorizontal: 72 },
   matchStatus: { fontSize: 12, color: '#666', fontWeight: '500', textAlign: 'center' },
   matchStageTime: { fontSize: 20, color: '#222', fontWeight: '700', textAlign: 'center', marginTop: 4 },

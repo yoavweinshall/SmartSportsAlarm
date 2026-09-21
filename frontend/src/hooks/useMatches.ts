@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/providers/AuthProvider';
 import type { EnrichedMatch } from '@/types/models';
@@ -25,6 +25,27 @@ type MatchesState = {
 // Must match the `limit` default on the backend so hasMore inference is correct
 const PAGE_SIZE = 50;
 const REFRESH_INTERVAL_MS = 60_000;
+const PREVIOUS_LOAD_COOLDOWN_MS = 500;
+
+const isLiveMatch = (match: EnrichedMatch) => Number(match.stage_group) === 3;
+
+const sortMatches = (items: EnrichedMatch[]) =>
+  [...items].sort((a, b) => {
+    const startTimeOrder = new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+    if (startTimeOrder !== 0) return startTimeOrder;
+
+    return a.id - b.id;
+  });
+
+const uniqueMatches = (items: EnrichedMatch[]) => {
+  const byId = new Map<number, EnrichedMatch>();
+  for (const match of items) {
+    if (match?.id !== undefined && match?.id !== null) {
+      byId.set(match.id, match);
+    }
+  }
+  return Array.from(byId.values());
+};
 
 export function useMatches(params: FetchMatchesParams = {}): MatchesState {
   const { session } = useAuth();
@@ -35,6 +56,8 @@ export function useMatches(params: FetchMatchesParams = {}): MatchesState {
   const [hasMoreNext, setHasMoreNext] = useState(true);
   const [hasMorePrevious, setHasMorePrevious] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isLoadingPreviousRef = useRef(false);
+  const lastPreviousLoadAtRef = useRef(0);
 
   // Serialize params so callbacks/effects only re-run when values actually change
   const paramsKey = JSON.stringify(params);
@@ -112,10 +135,20 @@ export function useMatches(params: FetchMatchesParams = {}): MatchesState {
     // No cursor → backend defaults to midnight of the current day (forward direction)
     fetchPage()
       .then((data) => {
-        if (!cancelled) {
-          setMatches(data);
+        if (!cancelled && data.length > 0) {
+          setMatches(sortMatches(uniqueMatches(data)));
           // If the page is smaller than the limit there is nothing further ahead
           setHasMoreNext(data.length >= PAGE_SIZE);
+        }
+
+        // If there are no matches today or later, seed the list with the closest older page.
+        if (!cancelled && data.length === 0) {
+          return fetchPage(undefined, 'backward').then((previousData) => {
+            if (cancelled) return;
+            setMatches(sortMatches(uniqueMatches(previousData)));
+            setHasMorePrevious(previousData.length >= PAGE_SIZE);
+            setHasMoreNext(previousData.length > 0);
+          });
         }
       })
       .catch((e) => {
@@ -146,11 +179,18 @@ export function useMatches(params: FetchMatchesParams = {}): MatchesState {
         if (cancelled) return;
 
         setMatches((currentMatches) => {
-          if (JSON.stringify(currentMatches) === JSON.stringify(data)) {
-            return currentMatches;
+          if (params.is_live) {
+            const uniqueData = uniqueMatches(data);
+            return JSON.stringify(currentMatches) === JSON.stringify(uniqueData) ? currentMatches : uniqueData;
           }
 
-          return data;
+          const refreshedById = new Map(data.map((match) => [match.id, match]));
+          const merged = currentMatches.map((match) => refreshedById.get(match.id) ?? match);
+          const knownIds = new Set(currentMatches.map((match) => match.id));
+          const newMatches = data.filter((match) => !knownIds.has(match.id));
+          const nextMatches = sortMatches(uniqueMatches([...merged, ...newMatches]));
+
+          return JSON.stringify(currentMatches) === JSON.stringify(nextMatches) ? currentMatches : nextMatches;
         });
       } catch (e) {
         if (!cancelled) {
@@ -174,14 +214,16 @@ export function useMatches(params: FetchMatchesParams = {}): MatchesState {
     if (isFetchingNext || !hasMoreNext || matches.length === 0 || !session?.access_token) return;
 
     // +1 ms ensures the backend's >= does not re-fetch the last already-shown match
-    const cursorMs = new Date(matches[matches.length - 1].start_time).getTime() + 1;
+    const nonLiveMatches = matches.filter((match) => !isLiveMatch(match));
+    const lastMatch = nonLiveMatches[nonLiveMatches.length - 1] ?? matches[matches.length - 1];
+    const cursorMs = new Date(lastMatch.start_time).getTime() + 1;
     const cursor = new Date(cursorMs).toISOString();
 
     setIsFetchingNext(true);
     try {
       const newMatches = await fetchPage(cursor, 'forward');
       setHasMoreNext(newMatches.length >= PAGE_SIZE);
-      setMatches((prev) => [...prev, ...newMatches]);
+      setMatches((prev) => sortMatches(uniqueMatches([...prev, ...newMatches])));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -194,19 +236,32 @@ export function useMatches(params: FetchMatchesParams = {}): MatchesState {
    * Uses the first known match as the backward cursor (exclusive — backend uses <).
    */
   const loadPrevious = useCallback(async () => {
-    if (isFetchingPrevious || !hasMorePrevious || matches.length === 0 || !session?.access_token) return;
+    if (
+      isLoadingPreviousRef.current ||
+      Date.now() - lastPreviousLoadAtRef.current < PREVIOUS_LOAD_COOLDOWN_MS ||
+      isFetchingPrevious ||
+      !hasMorePrevious ||
+      matches.length === 0 ||
+      !session?.access_token
+    ) return;
+
+    isLoadingPreviousRef.current = true;
+    lastPreviousLoadAtRef.current = Date.now();
 
     // The backend uses strict < for backward direction so this cursor value is excluded
-    const cursor = matches[0].start_time;
+    const nonLiveMatches = matches.filter((match) => !isLiveMatch(match));
+    const firstMatch = nonLiveMatches[0] ?? matches[0];
+    const cursor = firstMatch.start_time;
 
     setIsFetchingPrevious(true);
     try {
       const newMatches = await fetchPage(cursor, 'backward');
       setHasMorePrevious(newMatches.length >= PAGE_SIZE);
-      setMatches((prev) => [...newMatches, ...prev]);
+      setMatches((prev) => sortMatches(uniqueMatches([...newMatches, ...prev])));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
+      isLoadingPreviousRef.current = false;
       setIsFetchingPrevious(false);
     }
   }, [isFetchingPrevious, hasMorePrevious, matches, session?.access_token, fetchPage]);
