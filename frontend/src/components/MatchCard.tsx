@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   scoreDivider: { fontSize: 14, color: '#ccc', paddingHorizontal: 8, fontWeight: '500' },
   statusRow: { position: 'relative', minHeight: 62, justifyContent: 'center' },
   startTime: { position: 'absolute', left: 0, top: 0, bottom: 0, justifyContent: 'center', width: 64 },
-  startTimeText: { fontSize: 13, color: '#555', fontWeight: '600' },
+  startTimeText: { fontSize: 15, color: '#555', fontWeight: '600' },
   matchDetails: { alignItems: 'center', paddingHorizontal: 72 },
   matchStatus: { fontSize: 12, color: '#666', fontWeight: '500', textAlign: 'center' },
   matchStageTime: { fontSize: 20, color: '#222', fontWeight: '700', textAlign: 'center', marginTop: 4 },

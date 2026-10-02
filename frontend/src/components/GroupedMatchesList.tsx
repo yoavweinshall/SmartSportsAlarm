@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   competitionHeaderText: {
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: '600',
     color: '#444',
     textTransform: 'uppercase',
